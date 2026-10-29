@@ -889,14 +889,14 @@
             <span id="cloudSyncStatusBadge" class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[11px] font-bold">同步就緒</span>
           </div>
           <div class="flex flex-wrap items-center gap-1.5 text-xs">
-            <button onclick="refreshDevotionalsNow(true)" title="立即從雲端/伺服器拉取最新內容" class="px-2.5 py-1 rounded-xl theme-surface border hover:border-blue-500 font-semibold flex items-center gap-1 transition">
+            <button onclick="refreshDevotionalsNow(true)" title="立即從雲端/Google試算表拉取最新內容" class="px-2.5 py-1 rounded-xl theme-surface border hover:border-blue-500 font-semibold flex items-center gap-1 transition">
               <i class="fa-solid fa-arrows-rotate text-blue-500"></i> 立即同步
             </button>
-            <button onclick="toggleGitHubSyncConfig()" title="若網頁放於 GitHub Pages，設定一次即可在發放時自動更新 GitHub 上的 devotionals.json" class="px-2.5 py-1 rounded-xl theme-surface border hover:border-indigo-500 font-semibold flex items-center gap-1 transition">
-              <i class="fa-brands fa-github"></i> GitHub 同步設定
+            <button onclick="toggleGoogleSheetSyncConfig()" title="連結 Google 試算表作為免費雲端資料庫，發放時自動更新給所有會友" class="px-2.5 py-1 rounded-xl theme-surface border hover:border-emerald-500 font-semibold flex items-center gap-1 transition">
+              <i class="fa-solid fa-table text-emerald-600"></i> Google 試算表設定
             </button>
-            <button onclick="exportDevotionalsJson()" title="匯出 devotionals.json 放在與 index.html 同資料夾即可供所有會友自動讀取" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1 transition">
-              <i class="fa-solid fa-file-export"></i> 匯出 devotionals.json
+            <button onclick="exportDevotionalsJson()" title="匯出 devotionals.json 備份" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1 transition">
+              <i class="fa-solid fa-file-export"></i> 匯出 JSON
             </button>
             <button onclick="logoutAdmin()" class="px-2.5 py-1 rounded-xl theme-surface border text-red-500 font-semibold hover:border-red-500 transition">
               登出 Admin
@@ -904,20 +904,30 @@
           </div>
         </div>
 
-        <!-- GitHub 遠端自動同步設定面板 (選填：讓靜態 GitHub Pages 也能一鍵全體同步) -->
-        <div id="githubSyncConfigBox" class="hidden p-3 rounded-2xl theme-surface border space-y-2 text-xs">
-          <div class="font-bold text-indigo-500 flex items-center justify-between">
-            <span><i class="fa-brands fa-github mr-1"></i>GitHub Pages 自動寫入設定（讓所有使用者免重新上傳檔案即可見到更新）</span>
-            <button onclick="toggleGitHubSyncConfig()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+        <!-- Google Spreadsheet (Google 試算表) 自動同步設定面板 -->
+        <div id="googleSheetSyncConfigBox" class="hidden p-3.5 rounded-2xl theme-surface border space-y-2.5 text-xs">
+          <div class="font-bold text-emerald-600 flex items-center justify-between">
+            <span><i class="fa-solid fa-table mr-1"></i>Google 試算表 (Spreadsheet) 雲端同步設定</span>
+            <button onclick="toggleGoogleSheetSyncConfig()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
           </div>
-          <p class="theme-muted leading-relaxed">
-            系統已內建雲端即時同步；若你將網頁放在自己的 GitHub 倉庫，填入倉庫路徑與 Token 後，每次按「發放張貼」或「刪去」都會自動直接寫入 GitHub 上的 <code>devotionals.json</code>，全球所有會友打開網頁即刻同步更新！
-          </p>
-          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <input id="ghRepoInput" type="text" placeholder="GitHub 帳號/倉庫名 (例: saiyeung/bible)" class="sm:col-span-4 px-2.5 py-1.5 rounded-xl theme-secondary border">
-            <input id="ghBranchInput" type="text" placeholder="分支 (預設: main)" value="main" class="sm:col-span-2 px-2.5 py-1.5 rounded-xl theme-secondary border">
-            <input id="ghTokenInput" type="password" autocomplete="off" placeholder="GitHub Personal Access Token (ghp_...)" class="sm:col-span-4 px-2.5 py-1.5 rounded-xl theme-secondary border">
-            <button onclick="saveGitHubSyncConfig()" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">儲存設定</button>
+          <div class="theme-muted space-y-1 leading-relaxed">
+            <p>透過 Google 試算表儲存靈修與教會消息，完全免費且所有會友打開網頁即可看到最新張貼：</p>
+            <ol class="list-decimal list-inside space-y-0.5 text-[11px]">
+              <li>開新一個 <a href="https://sheets.new" target="_blank" class="text-blue-500 underline font-semibold">Google 試算表</a>，點選頂部選單「擴充功能」&rarr;「Apps Script」。</li>
+              <li>點擊下方「複製 Google 試算表腳本」，貼上取代 Apps Script 內的程式碼並儲存。</li>
+              <li>點選右上角「部署」&rarr;「新增部署作業」&rarr; 類型選「網頁應用程式」，誰可以存取選「<strong>所有人 (Anyone)</strong>」，部署後複製<strong>網頁應用程式網址 (https://script.google.com/macros/s/.../exec)</strong> 貼在下方即可！</li>
+            </ol>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="copyGoogleAppsScriptCode()" class="px-3 py-1.5 rounded-xl bg-emerald-600/15 text-emerald-600 border border-emerald-500/30 font-semibold hover:bg-emerald-600/25 transition flex items-center gap-1">
+              <i class="fa-regular fa-copy"></i> 1. 複製 Google 試算表腳本 (Apps Script)
+            </button>
+            <span class="theme-muted text-[11px]">（你亦可以把網址寫入程式碼預設變數 <code>DEFAULT_GOOGLE_SHEET_WEBAPP_URL</code> 讓所有裝置自動連線）</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1">
+            <input id="gsWebAppUrlInput" type="text" placeholder="貼上 Google 試算表網頁應用程式網址 (https://script.google.com/macros/s/.../exec)" class="sm:col-span-7 px-2.5 py-1.5 rounded-xl theme-secondary border">
+            <input id="gsReadCsvUrlInput" type="text" placeholder="選填：試算表發佈至網路的 CSV 連結 (加速讀取)" class="sm:col-span-3 px-2.5 py-1.5 rounded-xl theme-secondary border">
+            <button onclick="saveGoogleSheetSyncConfig()" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">儲存並同步</button>
           </div>
         </div>
 
@@ -3069,11 +3079,13 @@
       if (Array.isArray(cached)) {
         devotionalState.items = cached;
       }
-      // 2. 嘗試讀取同資料夾下的 devotionals.json (加上時間戳避免瀏覽器快取舊檔，並以伺服器最新檔案優先)
-      await fetchSameFolderDevotionals(false);
+      // 2. 優先從 Google 試算表 (Google Spreadsheet) 讀取最新靈修與教會消息
+      const gsOk = await fetchFromGoogleSheetIfConfigured(false);
 
-      // 3. 若已在設定中綁定 GitHub 倉庫，直接透過 GitHub API 讀取最新內容（零快取延遲）
-      await fetchFromGitHubApiIfConfigured();
+      // 3. 若未設定 Google 試算表，嘗試讀取同資料夾下的 devotionals.json
+      if (!gsOk) {
+        await fetchSameFolderDevotionals(false);
+      }
 
       updateDevotionalBadge();
       updateDevoSpeechLangButton();
@@ -3086,7 +3098,6 @@
         if (res.ok) {
           const remoteItems = await res.json();
           if (Array.isArray(remoteItems)) {
-            // 若本機並無較新的未同步變更，或使用者主動刷新，則採用伺服器最新清單
             devotionalState.items = remoteItems;
             await saveDevotionalsToOfflineDB(remoteItems);
             updateDevotionalBadge();
@@ -3100,17 +3111,15 @@
     }
 
     async function refreshDevotionalsNow(showMsg = true) {
+      const gsOk = await fetchFromGoogleSheetIfConfigured(showMsg);
+      if (gsOk) return;
+
       if (window.__cloudForceRefreshDevotionals) {
         const ok = await window.__cloudForceRefreshDevotionals();
         if (ok) {
           if (showMsg) showToast("已從雲端即時同步最新靈修與教會消息！");
           return;
         }
-      }
-      const ghOk = await fetchFromGitHubApiIfConfigured();
-      if (ghOk) {
-        if (showMsg) showToast("已從 GitHub 同步最新靈修與教會消息！");
-        return;
       }
       const folderOk = await fetchSameFolderDevotionals(showMsg);
       if (!folderOk && showMsg) {
@@ -3119,131 +3128,363 @@
       }
     }
 
-    // GitHub API 遠端讀寫支援（讓放在 GitHub Pages 的靜態網頁也能直接線上發佈給所有使用者）
-    async function saveGitHubConfigToDB(cfg) {
+    /********************************************************************
+     * Google Spreadsheet (Google 試算表 + Apps Script) 雲端讀寫整合
+     * 支援：
+     * 1. 將部署好的 Google Apps Script 網址填入下方 DEFAULT_GOOGLE_SHEET_WEBAPP_URL，
+     *    所有會友打開網頁即自動從該 Google 試算表讀取最新靈修與教會消息。
+     * 2. 管理員按「發放張貼」或「刪去」時，自動透過 POST 寫入同一份 Google 試算表。
+     ********************************************************************/
+    const DEFAULT_GOOGLE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj6lqexc0dSo7jpQewvuRFH1SttOHZJdNlE6-CVt1tDdsqozHepQvSRn7YA_A8YQ4G/exec";
+    const DEFAULT_GOOGLE_SHEET_CSV_URL = "";    // 選填：Google 試算表「發佈到網路」的 CSV 連結
+
+    async function saveGoogleSheetConfigToDB(cfg) {
       try {
         const db = await openOfflineDB();
         if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) return;
         const tx = db.transaction(IDB_DEVO_STORE, "readwrite");
-        tx.objectStore(IDB_DEVO_STORE).put({ id: "gh_sync_cfg", ...cfg });
+        tx.objectStore(IDB_DEVO_STORE).put({ id: "gs_sync_cfg", ...cfg });
       } catch (e) {}
     }
 
-    async function loadGitHubConfigFromDB() {
+    async function loadGoogleSheetConfigFromDB() {
       try {
         const db = await openOfflineDB();
-        if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) return null;
+        if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) {
+          return { webAppUrl: DEFAULT_GOOGLE_SHEET_WEBAPP_URL, csvUrl: DEFAULT_GOOGLE_SHEET_CSV_URL };
+        }
         return new Promise(resolve => {
           const tx = db.transaction(IDB_DEVO_STORE, "readonly");
-          const req = tx.objectStore(IDB_DEVO_STORE).get("gh_sync_cfg");
-          req.onsuccess = () => resolve(req.result || null);
-          req.onerror = () => resolve(null);
+          const req = tx.objectStore(IDB_DEVO_STORE).get("gs_sync_cfg");
+          req.onsuccess = () => {
+            const res = req.result || {};
+            resolve({
+              webAppUrl: res.webAppUrl || DEFAULT_GOOGLE_SHEET_WEBAPP_URL,
+              csvUrl: res.csvUrl || DEFAULT_GOOGLE_SHEET_CSV_URL
+            });
+          };
+          req.onerror = () => resolve({ webAppUrl: DEFAULT_GOOGLE_SHEET_WEBAPP_URL, csvUrl: DEFAULT_GOOGLE_SHEET_CSV_URL });
         });
       } catch (e) {
-        return null;
+        return { webAppUrl: DEFAULT_GOOGLE_SHEET_WEBAPP_URL, csvUrl: DEFAULT_GOOGLE_SHEET_CSV_URL };
       }
     }
 
-    async function toggleGitHubSyncConfig() {
-      const box = document.getElementById("githubSyncConfigBox");
+    async function toggleGoogleSheetSyncConfig() {
+      const box = document.getElementById("googleSheetSyncConfigBox");
       if (!box) return;
       box.classList.toggle("hidden");
       if (!box.classList.contains("hidden")) {
-        const cfg = await loadGitHubConfigFromDB();
-        if (cfg) {
-          document.getElementById("ghRepoInput").value = cfg.repo || "";
-          document.getElementById("ghBranchInput").value = cfg.branch || "main";
-          document.getElementById("ghTokenInput").value = cfg.token || "";
+        const cfg = await loadGoogleSheetConfigFromDB();
+        document.getElementById("gsWebAppUrlInput").value = cfg.webAppUrl || "";
+        document.getElementById("gsReadCsvUrlInput").value = cfg.csvUrl || "";
+      }
+    }
+
+    async function saveGoogleSheetSyncConfig() {
+      const webAppUrl = document.getElementById("gsWebAppUrlInput").value.trim();
+      const csvUrl = document.getElementById("gsReadCsvUrlInput").value.trim();
+      await saveGoogleSheetConfigToDB({ webAppUrl, csvUrl });
+      document.getElementById("googleSheetSyncConfigBox").classList.add("hidden");
+
+      const badge = document.getElementById("cloudSyncStatusBadge");
+      if (webAppUrl) {
+        if (badge) {
+          badge.textContent = "Google 試算表同步中";
+          badge.className = "px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[11px] font-bold";
+        }
+        const ok = await pushDevotionalsToGoogleSheet(devotionalState.items);
+        if (ok) {
+          showToast("已連結 Google 試算表並成功同步目前內容！");
+        } else {
+          await fetchFromGoogleSheetIfConfigured(true);
+        }
+      } else {
+        showToast("已儲存設定");
+      }
+    }
+
+    // 一鍵複製 Google 試算表 Apps Script 程式碼
+    function copyGoogleAppsScriptCode() {
+      const scriptCode = `/**
+ * 聖經隨身寶 - 明恩堂
+ * Google 試算表 靈修與教會消息 同步後端 (Apps Script)
+ */
+
+function getOrCreateSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("靈修與消息") || ss.getSheetByName("Devotionals");
+  if (!sheet) {
+    sheet = ss.insertSheet("靈修與消息");
+    sheet.appendRow(["id", "category", "title", "date", "scripture", "content", "audioUrl", "updated_at"]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function doGet(e) {
+  try {
+    var sheet = getOrCreateSheet();
+    var data = sheet.getDataRange().getValues();
+    var items = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (row[0] || row[2]) {
+        items.push({
+          id: String(row[0] || "row_" + i),
+          type: String(row[1] || "devotional"),
+          category: String(row[1] || "devotional"),
+          title: String(row[2] || ""),
+          date: String(row[3] || ""),
+          scripture: String(row[4] || ""),
+          content: String(row[5] || ""),
+          audioUrl: String(row[6] || ""),
+          author: "浸信宣道會明恩堂"
+        });
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", items: items, data: items }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var sheet = getOrCreateSheet();
+    var postData = JSON.parse(e.postData.contents);
+    var action = postData.action || "syncAll";
+
+    if (action === "save" && postData.item) {
+      var item = postData.item;
+      var data = sheet.getDataRange().getValues();
+      var rowIndex = -1;
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][0]) === String(item.id)) {
+          rowIndex = i + 1;
+          break;
         }
       }
-    }
-
-    async function saveGitHubSyncConfig() {
-      const repo = document.getElementById("ghRepoInput").value.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\/$/, "");
-      const branch = document.getElementById("ghBranchInput").value.trim() || "main";
-      const token = document.getElementById("ghTokenInput").value.trim();
-      await saveGitHubConfigToDB({ repo, branch, token });
-      document.getElementById("githubSyncConfigBox").classList.add("hidden");
-      showToast(repo && token ? "已儲存 GitHub 自動同步設定！" : "已更新 GitHub 設定");
-      if (repo && token) {
-        await pushDevotionalsToGitHub(devotionalState.items);
+      var rowValues = [
+        item.id,
+        item.type || item.category || "devotional",
+        item.title || "",
+        item.date || "",
+        item.scripture || "",
+        item.content || "",
+        item.audioUrl || "",
+        new Date().toISOString()
+      ];
+      if (rowIndex > 0) {
+        sheet.getRange(rowIndex, 1, 1, 8).setValues([rowValues]);
+      } else {
+        sheet.appendRow(rowValues);
       }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    async function fetchFromGitHubApiIfConfigured() {
-      try {
-        const cfg = await loadGitHubConfigFromDB();
-        let repo = cfg?.repo || "";
-        let branch = cfg?.branch || "main";
-        // 若部署在 *.github.io，可自動推斷公開倉庫名稱讀取最新 devotionals.json
-        if (!repo && location.hostname.endsWith(".github.io")) {
-          const owner = location.hostname.replace(".github.io", "");
-          const pathParts = location.pathname.split("/").filter(Boolean);
-          if (owner && pathParts.length > 0) {
-            repo = `${owner}/${pathParts[0]}`;
+    if (action === "delete" && postData.id) {
+      var targetId = String(postData.id);
+      var data = sheet.getDataRange().getValues();
+      for (var j = 1; j < data.length; j++) {
+        if (String(data[j][0]) === targetId) {
+          sheet.deleteRow(j + 1);
+          break;
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "syncAll" || Array.isArray(postData.items)) {
+      var items = postData.items || [];
+      sheet.clearContents();
+      sheet.appendRow(["id", "category", "title", "date", "scripture", "content", "audioUrl", "updated_at"]);
+      sheet.setFrozenRows(1);
+      var rows = [];
+      for (var k = 0; k < items.length; k++) {
+        var it = items[k];
+        rows.push([
+          it.id || "",
+          it.type || it.category || "devotional",
+          it.title || "",
+          it.date || "",
+          it.scripture || "",
+          it.content || "",
+          it.audioUrl || "",
+          new Date().toISOString()
+        ]);
+      }
+      if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, 8).setValues(rows);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", count: rows.length })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unknown action" })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+      const temp = document.createElement("textarea");
+      temp.value = scriptCode;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+      showToast("已複製完整 Google 試算表 Apps Script 程式碼！");
+    }
+
+    // 解析 CSV 字串（支援引號內換行與逗號），供選填 CSV 發佈連結讀取
+    function parseCsvToRows(csvText) {
+      const rows = [];
+      let row = [];
+      let cur = "";
+      let inQuotes = false;
+      for (let i = 0; i < csvText.length; i++) {
+        const ch = csvText[i];
+        const next = csvText[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            cur += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            cur += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ",") {
+            row.push(cur);
+            cur = "";
+          } else if (ch === "\n" || (ch === "\r" && next === "\n")) {
+            if (ch === "\r") i++;
+            row.push(cur);
+            rows.push(row);
+            row = [];
+            cur = "";
+          } else {
+            cur += ch;
           }
         }
-        if (!repo) return false;
+      }
+      if (cur.length > 0 || row.length > 0) {
+        row.push(cur);
+        rows.push(row);
+      }
+      return rows;
+    }
 
-        const headers = { "Accept": "application/vnd.github.v3+json" };
-        if (cfg?.token) headers["Authorization"] = `token ${cfg.token}`;
+    async function fetchFromGoogleSheetIfConfigured(showMsg = false) {
+      try {
+        const cfg = await loadGoogleSheetConfigFromDB();
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryGsUrl = urlParams.get("gs") || "";
+        const webAppUrl = queryGsUrl || cfg.webAppUrl;
+        const csvUrl = cfg.csvUrl;
 
-        const apiUrl = `https://api.github.com/repos/${repo}/contents/devotionals.json?ref=${encodeURIComponent(branch)}&t=${Date.now()}`;
-        const res = await fetch(apiUrl, { headers, cache: "no-store" });
-        if (!res.ok) return false;
-        const data = await res.json();
-        if (data && data.content) {
-          const decoded = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ""))));
-          const parsed = JSON.parse(decoded);
-          if (Array.isArray(parsed)) {
-            devotionalState.items = parsed;
-            await saveDevotionalsToOfflineDB(parsed);
-            updateDevotionalBadge();
-            renderDevotionalList();
-            return true;
+        if (webAppUrl) {
+          const sep = webAppUrl.includes("?") ? "&" : "?";
+          const res = await fetch(`${webAppUrl}${sep}t=${Date.now()}`, { cache: "no-store" });
+          if (res.ok) {
+            const data = await res.json();
+            const rawList = Array.isArray(data)
+              ? data
+              : (Array.isArray(data.items) ? data.items : (Array.isArray(data.data) ? data.data : null));
+            if (rawList) {
+              const normalizedList = rawList.map((it, idx) => ({
+                id: String(it.id || `gs_${idx}`),
+                type: String(it.type || it.category || "devotional"),
+                category: String(it.category || it.type || "devotional"),
+                title: String(it.title || ""),
+                scripture: String(it.scripture || ""),
+                content: String(it.content || ""),
+                date: String(it.date || "").slice(0, 10),
+                author: String(it.author || "浸信宣道會明恩堂"),
+                audioUrl: String(it.audioUrl || "")
+              }));
+              // 若試算表剛建立還是空的，且本地有預設項目，先保留顯示並將預設項目初始化至試算表
+              if (normalizedList.length > 0) {
+                devotionalState.items = normalizedList;
+                await saveDevotionalsToOfflineDB(normalizedList);
+              } else if (devotionalState.items.length > 0) {
+                pushDevotionalsToGoogleSheet(devotionalState.items);
+              }
+              updateDevotionalBadge();
+              renderDevotionalList();
+              const badge = document.getElementById("cloudSyncStatusBadge");
+              if (badge) {
+                badge.textContent = "Google 試算表已連線";
+                badge.className = "px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[11px] font-bold";
+              }
+              if (showMsg) showToast("已從 Google 試算表同步最新靈修與教會消息！");
+              return true;
+            }
+          }
+        }
+
+        if (csvUrl) {
+          const sep = csvUrl.includes("?") ? "&" : "?";
+          const res = await fetch(`${csvUrl}${sep}t=${Date.now()}`, { cache: "no-store" });
+          if (res.ok) {
+            const csvText = await res.text();
+            const rows = parseCsvToRows(csvText);
+            if (rows.length > 1) {
+              const items = [];
+              for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r[0] && !r[2]) continue;
+                items.push({
+                  id: r[0] || `csv_${i}`,
+                  type: r[1] || "devotional",
+                  title: r[2] || "",
+                  scripture: r[3] || "",
+                  content: r[4] || "",
+                  date: r[5] || "",
+                  author: r[6] || "浸信宣道會明恩堂",
+                  audioUrl: r[7] || ""
+                });
+              }
+              devotionalState.items = items;
+              await saveDevotionalsToOfflineDB(items);
+              updateDevotionalBadge();
+              renderDevotionalList();
+              if (showMsg) showToast("已從 Google 試算表 CSV 同步最新內容！");
+              return true;
+            }
           }
         }
       } catch (e) {}
       return false;
     }
 
-    async function pushDevotionalsToGitHub(items) {
+    async function pushDevotionalsToGoogleSheet(items) {
       try {
-        const cfg = await loadGitHubConfigFromDB();
-        if (!cfg || !cfg.repo || !cfg.token) return false;
-        const branch = cfg.branch || "main";
-        const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/devotionals.json`;
-        const headers = {
-          "Accept": "application/vnd.github.v3+json",
-          "Authorization": `token ${cfg.token}`,
-          "Content-Type": "application/json"
-        };
-
-        let sha = undefined;
-        const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, { headers, cache: "no-store" });
-        if (getRes.ok) {
-          const existing = await getRes.json();
-          sha = existing.sha;
-        }
-
-        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(items, null, 2))));
-        const putRes = await fetch(apiUrl, {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({
-            message: `更新靈修與教會消息 (${new Date().toLocaleString("zh-HK")})`,
-            content: contentBase64,
-            branch,
-            ...(sha ? { sha } : {})
-          })
+        const cfg = await loadGoogleSheetConfigFromDB();
+        const targetUrl = (cfg && cfg.webAppUrl) ? cfg.webAppUrl : DEFAULT_GOOGLE_SHEET_WEBAPP_URL;
+        if (!targetUrl) return false;
+        const normalizedItems = (items || []).map(it => ({
+          ...it,
+          type: it.type || it.category || "devotional",
+          category: it.category || it.type || "devotional"
+        }));
+        // 使用 text/plain 傳送 JSON 以避開瀏覽器對 Google Apps Script 的 CORS 預檢限制
+        const res = await fetch(targetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "syncAll", items: normalizedItems })
         });
-        return putRes.ok;
+        return res.ok || res.type === "opaque";
       } catch (e) {
         return false;
       }
     }
 
-    // 統籌儲存與廣播同步給所有使用者（IndexedDB + 雲端即時資料庫 + GitHub 遠端倉庫）
+    // 統籌儲存與廣播同步給所有使用者（IndexedDB + Google 試算表 + 雲端即時資料庫）
     async function syncAndPersistDevotionals(items) {
       devotionalState.items = [...items];
       updateDevotionalBadge();
@@ -3251,12 +3492,12 @@
 
       await saveDevotionalsToOfflineDB(devotionalState.items);
 
+      const syncedGs = await pushDevotionalsToGoogleSheet(devotionalState.items);
       let syncedCloud = false;
       if (typeof window.__cloudSyncSavePostList === "function") {
         syncedCloud = await window.__cloudSyncSavePostList(devotionalState.items);
       }
-      const syncedGh = await pushDevotionalsToGitHub(devotionalState.items);
-      return { syncedCloud, syncedGh };
+      return { syncedCloud, syncedGs };
     }
 
     function updateDevotionalBadge() {
@@ -3392,11 +3633,13 @@
         setDevotionalTab("ALL");
       }
 
-      const { syncedCloud, syncedGh } = await syncAndPersistDevotionals(nextList);
-      if (syncedCloud || syncedGh) {
-        showToast(`已成功發放並同步給所有使用者！`);
+      const { syncedCloud, syncedGs } = await syncAndPersistDevotionals(nextList);
+      if (syncedGs) {
+        showToast("已成功發放並寫入 Google 試算表，所有會友均可看到更新！");
+      } else if (syncedCloud) {
+        showToast("已成功發放並同步給所有使用者！");
       } else {
-        showToast(`已成功發放！（若放於靜態網站，可點「匯出 devotionals.json」或設定 GitHub 同步）`);
+        showToast("已張貼！（請在上方「Google 試算表設定」填入網址以同步給所有使用者）");
       }
     }
 
@@ -3409,9 +3652,9 @@
         stopDevotionalSpeech();
       }
       const nextList = devotionalState.items.filter(item => item.id !== itemId);
-      const { syncedCloud, syncedGh } = await syncAndPersistDevotionals(nextList);
-      if (syncedCloud || syncedGh) {
-        showToast("已刪去該則項目並同步更新給所有使用者");
+      const { syncedCloud, syncedGs } = await syncAndPersistDevotionals(nextList);
+      if (syncedGs || syncedCloud) {
+        showToast("已刪去該則項目並同步更新至 Google 試算表");
       } else {
         showToast("已刪去該則項目");
       }
