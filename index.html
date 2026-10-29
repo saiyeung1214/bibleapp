@@ -885,15 +885,39 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="font-bold text-amber-600 flex items-center gap-1.5">
             <i class="fa-solid fa-pen-nib"></i>
-            <span>管理員發佈中心（可發放及刪去靈修及教會消息）</span>
+            <span>管理員發佈中心（即時全體同步發放及刪去）</span>
+            <span id="cloudSyncStatusBadge" class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[11px] font-bold">同步就緒</span>
           </div>
           <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <button onclick="refreshDevotionalsNow(true)" title="立即從雲端/伺服器拉取最新內容" class="px-2.5 py-1 rounded-xl theme-surface border hover:border-blue-500 font-semibold flex items-center gap-1 transition">
+              <i class="fa-solid fa-arrows-rotate text-blue-500"></i> 立即同步
+            </button>
+            <button onclick="toggleGitHubSyncConfig()" title="若網頁放於 GitHub Pages，設定一次即可在發放時自動更新 GitHub 上的 devotionals.json" class="px-2.5 py-1 rounded-xl theme-surface border hover:border-indigo-500 font-semibold flex items-center gap-1 transition">
+              <i class="fa-brands fa-github"></i> GitHub 同步設定
+            </button>
             <button onclick="exportDevotionalsJson()" title="匯出 devotionals.json 放在與 index.html 同資料夾即可供所有會友自動讀取" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1 transition">
               <i class="fa-solid fa-file-export"></i> 匯出 devotionals.json
             </button>
             <button onclick="logoutAdmin()" class="px-2.5 py-1 rounded-xl theme-surface border text-red-500 font-semibold hover:border-red-500 transition">
               登出 Admin
             </button>
+          </div>
+        </div>
+
+        <!-- GitHub 遠端自動同步設定面板 (選填：讓靜態 GitHub Pages 也能一鍵全體同步) -->
+        <div id="githubSyncConfigBox" class="hidden p-3 rounded-2xl theme-surface border space-y-2 text-xs">
+          <div class="font-bold text-indigo-500 flex items-center justify-between">
+            <span><i class="fa-brands fa-github mr-1"></i>GitHub Pages 自動寫入設定（讓所有使用者免重新上傳檔案即可見到更新）</span>
+            <button onclick="toggleGitHubSyncConfig()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <p class="theme-muted leading-relaxed">
+            系統已內建雲端即時同步；若你將網頁放在自己的 GitHub 倉庫，填入倉庫路徑與 Token 後，每次按「發放張貼」或「刪去」都會自動直接寫入 GitHub 上的 <code>devotionals.json</code>，全球所有會友打開網頁即刻同步更新！
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input id="ghRepoInput" type="text" placeholder="GitHub 帳號/倉庫名 (例: saiyeung/bible)" class="sm:col-span-4 px-2.5 py-1.5 rounded-xl theme-secondary border">
+            <input id="ghBranchInput" type="text" placeholder="分支 (預設: main)" value="main" class="sm:col-span-2 px-2.5 py-1.5 rounded-xl theme-secondary border">
+            <input id="ghTokenInput" type="password" autocomplete="off" placeholder="GitHub Personal Access Token (ghp_...)" class="sm:col-span-4 px-2.5 py-1.5 rounded-xl theme-secondary border">
+            <button onclick="saveGitHubSyncConfig()" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">儲存設定</button>
           </div>
         </div>
 
@@ -3045,20 +3069,194 @@
       if (Array.isArray(cached)) {
         devotionalState.items = cached;
       }
-      // 2. 嘗試讀取同資料夾下的 devotionals.json (若管理員有放置於同資料夾)
-      try {
-        const res = await fetch("./devotionals.json", { cache: "no-cache" });
-        if (res.ok) {
-          const remoteItems = await res.json();
-          if (Array.isArray(remoteItems) && remoteItems.length > 0) {
-            devotionalState.items = remoteItems;
-            await saveDevotionalsToOfflineDB(remoteItems);
-          }
-        }
-      } catch (e) {}
+      // 2. 嘗試讀取同資料夾下的 devotionals.json (加上時間戳避免瀏覽器快取舊檔，並以伺服器最新檔案優先)
+      await fetchSameFolderDevotionals(false);
+
+      // 3. 若已在設定中綁定 GitHub 倉庫，直接透過 GitHub API 讀取最新內容（零快取延遲）
+      await fetchFromGitHubApiIfConfigured();
 
       updateDevotionalBadge();
       updateDevoSpeechLangButton();
+      renderDevotionalList();
+    }
+
+    async function fetchSameFolderDevotionals(showMsg = false) {
+      try {
+        const res = await fetch(`./devotionals.json?t=${Date.now()}`, { cache: "no-store" });
+        if (res.ok) {
+          const remoteItems = await res.json();
+          if (Array.isArray(remoteItems)) {
+            // 若本機並無較新的未同步變更，或使用者主動刷新，則採用伺服器最新清單
+            devotionalState.items = remoteItems;
+            await saveDevotionalsToOfflineDB(remoteItems);
+            updateDevotionalBadge();
+            renderDevotionalList();
+            if (showMsg) showToast("已同步最新靈修與教會消息！");
+            return true;
+          }
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    async function refreshDevotionalsNow(showMsg = true) {
+      if (window.__cloudForceRefreshDevotionals) {
+        const ok = await window.__cloudForceRefreshDevotionals();
+        if (ok) {
+          if (showMsg) showToast("已從雲端即時同步最新靈修與教會消息！");
+          return;
+        }
+      }
+      const ghOk = await fetchFromGitHubApiIfConfigured();
+      if (ghOk) {
+        if (showMsg) showToast("已從 GitHub 同步最新靈修與教會消息！");
+        return;
+      }
+      const folderOk = await fetchSameFolderDevotionals(showMsg);
+      if (!folderOk && showMsg) {
+        renderDevotionalList();
+        showToast("目前已是最新靈修與消息清單");
+      }
+    }
+
+    // GitHub API 遠端讀寫支援（讓放在 GitHub Pages 的靜態網頁也能直接線上發佈給所有使用者）
+    async function saveGitHubConfigToDB(cfg) {
+      try {
+        const db = await openOfflineDB();
+        if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) return;
+        const tx = db.transaction(IDB_DEVO_STORE, "readwrite");
+        tx.objectStore(IDB_DEVO_STORE).put({ id: "gh_sync_cfg", ...cfg });
+      } catch (e) {}
+    }
+
+    async function loadGitHubConfigFromDB() {
+      try {
+        const db = await openOfflineDB();
+        if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) return null;
+        return new Promise(resolve => {
+          const tx = db.transaction(IDB_DEVO_STORE, "readonly");
+          const req = tx.objectStore(IDB_DEVO_STORE).get("gh_sync_cfg");
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function toggleGitHubSyncConfig() {
+      const box = document.getElementById("githubSyncConfigBox");
+      if (!box) return;
+      box.classList.toggle("hidden");
+      if (!box.classList.contains("hidden")) {
+        const cfg = await loadGitHubConfigFromDB();
+        if (cfg) {
+          document.getElementById("ghRepoInput").value = cfg.repo || "";
+          document.getElementById("ghBranchInput").value = cfg.branch || "main";
+          document.getElementById("ghTokenInput").value = cfg.token || "";
+        }
+      }
+    }
+
+    async function saveGitHubSyncConfig() {
+      const repo = document.getElementById("ghRepoInput").value.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\/$/, "");
+      const branch = document.getElementById("ghBranchInput").value.trim() || "main";
+      const token = document.getElementById("ghTokenInput").value.trim();
+      await saveGitHubConfigToDB({ repo, branch, token });
+      document.getElementById("githubSyncConfigBox").classList.add("hidden");
+      showToast(repo && token ? "已儲存 GitHub 自動同步設定！" : "已更新 GitHub 設定");
+      if (repo && token) {
+        await pushDevotionalsToGitHub(devotionalState.items);
+      }
+    }
+
+    async function fetchFromGitHubApiIfConfigured() {
+      try {
+        const cfg = await loadGitHubConfigFromDB();
+        let repo = cfg?.repo || "";
+        let branch = cfg?.branch || "main";
+        // 若部署在 *.github.io，可自動推斷公開倉庫名稱讀取最新 devotionals.json
+        if (!repo && location.hostname.endsWith(".github.io")) {
+          const owner = location.hostname.replace(".github.io", "");
+          const pathParts = location.pathname.split("/").filter(Boolean);
+          if (owner && pathParts.length > 0) {
+            repo = `${owner}/${pathParts[0]}`;
+          }
+        }
+        if (!repo) return false;
+
+        const headers = { "Accept": "application/vnd.github.v3+json" };
+        if (cfg?.token) headers["Authorization"] = `token ${cfg.token}`;
+
+        const apiUrl = `https://api.github.com/repos/${repo}/contents/devotionals.json?ref=${encodeURIComponent(branch)}&t=${Date.now()}`;
+        const res = await fetch(apiUrl, { headers, cache: "no-store" });
+        if (!res.ok) return false;
+        const data = await res.json();
+        if (data && data.content) {
+          const decoded = decodeURIComponent(escape(atob(data.content.replace(/\s/g, ""))));
+          const parsed = JSON.parse(decoded);
+          if (Array.isArray(parsed)) {
+            devotionalState.items = parsed;
+            await saveDevotionalsToOfflineDB(parsed);
+            updateDevotionalBadge();
+            renderDevotionalList();
+            return true;
+          }
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    async function pushDevotionalsToGitHub(items) {
+      try {
+        const cfg = await loadGitHubConfigFromDB();
+        if (!cfg || !cfg.repo || !cfg.token) return false;
+        const branch = cfg.branch || "main";
+        const apiUrl = `https://api.github.com/repos/${cfg.repo}/contents/devotionals.json`;
+        const headers = {
+          "Accept": "application/vnd.github.v3+json",
+          "Authorization": `token ${cfg.token}`,
+          "Content-Type": "application/json"
+        };
+
+        let sha = undefined;
+        const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, { headers, cache: "no-store" });
+        if (getRes.ok) {
+          const existing = await getRes.json();
+          sha = existing.sha;
+        }
+
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(items, null, 2))));
+        const putRes = await fetch(apiUrl, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({
+            message: `更新靈修與教會消息 (${new Date().toLocaleString("zh-HK")})`,
+            content: contentBase64,
+            branch,
+            ...(sha ? { sha } : {})
+          })
+        });
+        return putRes.ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // 統籌儲存與廣播同步給所有使用者（IndexedDB + 雲端即時資料庫 + GitHub 遠端倉庫）
+    async function syncAndPersistDevotionals(items) {
+      devotionalState.items = [...items];
+      updateDevotionalBadge();
+      renderDevotionalList();
+
+      await saveDevotionalsToOfflineDB(devotionalState.items);
+
+      let syncedCloud = false;
+      if (typeof window.__cloudSyncSavePostList === "function") {
+        syncedCloud = await window.__cloudSyncSavePostList(devotionalState.items);
+      }
+      const syncedGh = await pushDevotionalsToGitHub(devotionalState.items);
+      return { syncedCloud, syncedGh };
     }
 
     function updateDevotionalBadge() {
@@ -3178,20 +3376,28 @@
         content,
         audioUrl,
         date: today,
-        author: "浸信宣道會明恩堂"
+        author: "浸信宣道會明恩堂",
+        createdAtMs: Date.now()
       };
 
-      devotionalState.items.unshift(newItem);
-      await saveDevotionalsToOfflineDB(devotionalState.items);
+      const nextList = [newItem, ...devotionalState.items];
 
       document.getElementById("newPostTitleInput").value = "";
       document.getElementById("newPostScriptureInput").value = "";
       document.getElementById("newPostContentInput").value = "";
       document.getElementById("newPostAudioUrlInput").value = "";
 
-      updateDevotionalBadge();
-      renderDevotionalList();
-      showToast(`已成功發放${type === "devotional" ? "靈修分享" : "教會消息"}！`);
+      // 若處於特定分類分頁，自動切換至對應分頁或「全部」讓管理員立即看到新張貼項目
+      if (devotionalState.activeTab !== "ALL" && devotionalState.activeTab !== type) {
+        setDevotionalTab("ALL");
+      }
+
+      const { syncedCloud, syncedGh } = await syncAndPersistDevotionals(nextList);
+      if (syncedCloud || syncedGh) {
+        showToast(`已成功發放並同步給所有使用者！`);
+      } else {
+        showToast(`已成功發放！（若放於靜態網站，可點「匯出 devotionals.json」或設定 GitHub 同步）`);
+      }
     }
 
     async function deleteDevotionalItem(itemId) {
@@ -3202,11 +3408,13 @@
       if (devotionalState.playingId === itemId) {
         stopDevotionalSpeech();
       }
-      devotionalState.items = devotionalState.items.filter(item => item.id !== itemId);
-      await saveDevotionalsToOfflineDB(devotionalState.items);
-      updateDevotionalBadge();
-      renderDevotionalList();
-      showToast("已刪去該則項目");
+      const nextList = devotionalState.items.filter(item => item.id !== itemId);
+      const { syncedCloud, syncedGh } = await syncAndPersistDevotionals(nextList);
+      if (syncedCloud || syncedGh) {
+        showToast("已刪去該則項目並同步更新給所有使用者");
+      } else {
+        showToast("已刪去該則項目");
+      }
     }
 
     function exportDevotionalsJson() {
@@ -3475,6 +3683,105 @@
       await initDevotionalModule();
       renderCurrentChapter();
     });
+  </script>
+
+  <!-- 雲端即時多人同步模組 (讓所有使用者的靈修與教會消息即時同步更新) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    (async function initRealtimeMultiUserSync() {
+      try {
+        if (typeof __firebase_config === "undefined" || !__firebase_config) return;
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== "undefined" ? __app_id : "ming-yan-church-bible";
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // RULE 3: 先完成驗證再進行資料讀寫
+        if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, user => {
+          if (!user) return;
+
+          // RULE 1: 使用公開共享路徑 /artifacts/{appId}/public/data/devotionals/feed_state
+          const sharedFeedDocRef = doc(db, "artifacts", appId, "public", "data", "devotionals", "feed_state");
+
+          const badge = document.getElementById("cloudSyncStatusBadge");
+          if (badge) {
+            badge.textContent = "雲端即時同步中";
+            badge.className = "px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[11px] font-bold";
+          }
+
+          // 監聽公開靈修與消息清單，任何管理員發佈或刪去時，所有在線使用者即時自動更新
+          onSnapshot(
+            sharedFeedDocRef,
+            snapshot => {
+              if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data && Array.isArray(data.items)) {
+                  devotionalState.items = data.items;
+                  saveDevotionalsToOfflineDB(data.items);
+                  updateDevotionalBadge();
+                  renderDevotionalList();
+                }
+              } else if (Array.isArray(devotionalState.items) && devotionalState.items.length > 0) {
+                // 首次初始化雲端清單
+                setDoc(sharedFeedDocRef, {
+                  items: devotionalState.items,
+                  updatedAt: Date.now(),
+                  updatedBy: user.uid
+                }).catch(() => {});
+              }
+            },
+            err => {
+              console.warn("即時同步監聽異常:", err);
+            }
+          );
+
+          // 提供給管理員「發放張貼」與「刪去」時呼叫的雲端寫入函式
+          window.__cloudSyncSavePostList = async function (itemsArray) {
+            if (!auth.currentUser) return false;
+            try {
+              await setDoc(sharedFeedDocRef, {
+                items: itemsArray,
+                updatedAt: Date.now(),
+                updatedBy: auth.currentUser.uid
+              });
+              return true;
+            } catch (err) {
+              console.warn("雲端寫入失敗:", err);
+              return false;
+            }
+          };
+
+          // 提供手動強制拉取最新雲端資料
+          window.__cloudForceRefreshDevotionals = async function () {
+            if (!auth.currentUser) return false;
+            try {
+              const snap = await getDoc(sharedFeedDocRef);
+              if (snap.exists() && Array.isArray(snap.data()?.items)) {
+                devotionalState.items = snap.data().items;
+                await saveDevotionalsToOfflineDB(devotionalState.items);
+                updateDevotionalBadge();
+                renderDevotionalList();
+                return true;
+              }
+            } catch (e) {}
+            return false;
+          };
+        });
+      } catch (e) {
+        // 若在純靜態無雲端環境執行，自動降級使用 GitHub API / devotionals.json 同步
+      }
+    })();
   </script>
 </body>
 </html>
