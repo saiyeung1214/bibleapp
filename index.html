@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="聖經隨身寶" />
   <title>聖經隨身寶 — 多譯本並行與離線研讀版</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +26,8 @@
       --border-color: #e5e7eb;
       --accent-color: #2563eb;
       --verse-hover: rgba(37, 99, 235, 0.06);
+      --verse-line-height: 1.35;
+      --verse-py: 2px;
     }
 
     body.theme-white {
@@ -306,7 +311,7 @@
       </div>
     </div>
 
-    <!-- 雙譯本並行控制工具列 (開啟並行模式時顯示) -->
+    <!-- 雙譯本並行控制工具列 (開啟並行模式時顯示，預設上下直排與緊湊行距) -->
     <div id="parallelControlToolbar" class="hidden mb-4 p-3 rounded-2xl theme-secondary border space-y-2.5">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <!-- 主譯本與副譯本選擇器 -->
@@ -331,7 +336,7 @@
           </button>
         </div>
 
-        <!-- 排列方式（橫向左右 / 直向上下 / 逐節穿插） -->
+        <!-- 排列方式（預設上下直排 / 左右橫排 / 逐節對照） -->
         <div class="flex flex-wrap items-center gap-1.5 text-xs">
           <div class="inline-flex rounded-xl p-0.5 theme-surface border">
             <button id="layoutBtnVertical" onclick="setParallelDirection('vertical')" class="px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition flex items-center gap-1">
@@ -411,7 +416,7 @@
       <span>正在讀取並建立離線聖經資料庫...</span>
     </div>
 
-    <!-- 經文顯示主容器 (支援單譯本 / 左右橫排雙框 / 上下直排雙框 / 逐節穿插) -->
+    <!-- 經文顯示主容器 (支援單譯本 / 上下直排雙框 / 左右橫排雙框 / 逐節穿插) -->
     <div id="versesContainer" class="space-y-0.5 text-lg"></div>
 
     <!-- 章節底部上下章切換按鈕 -->
@@ -438,18 +443,21 @@
     </div>
   </main>
 
-  <!-- 底部固定語音朗讀與章節控制列 -->
+  <!-- 底部固定語音朗讀與章節控制列 (支援 iPhone / Android 背景保活與鎖屏控制) -->
   <footer class="fixed bottom-0 inset-x-0 z-30 theme-surface border-t shadow-lg backdrop-blur-md bg-opacity-95">
     <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2 text-xs sm:text-sm">
-      <!-- 播放/停止與狀態 -->
+      <!-- 播放/停止與背景保活狀態 -->
       <div class="flex items-center gap-2 min-w-0">
         <button id="playSpeechBtn" onclick="toggleSpeech()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center gap-1.5 shrink-0 shadow-xs">
           <i id="playSpeechIcon" class="fa-solid fa-play text-xs"></i>
           <span id="playSpeechText">朗讀本章</span>
         </button>
-        <button id="stopSpeechBtn" onclick="stopSpeech()" class="hidden px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-500 hover:bg-red-500/25 font-semibold transition">
+        <button id="stopSpeechBtn" onclick="stopSpeech()" class="hidden px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-500 hover:bg-red-500/25 font-semibold transition" title="停止朗讀">
           <i class="fa-solid fa-stop"></i>
         </button>
+        <span id="bgPlayBadge" class="hidden px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-bold shrink-0 items-center gap-1" title="已啟用無聲音軌保活、鎖屏控制與防休眠常亮">
+          <i class="fa-solid fa-mobile-screen-button"></i> 背景常駐
+        </span>
         <span id="speakingStatusText" class="theme-muted text-xs truncate hidden sm:inline">點擊經節可單節點選或從該節起讀</span>
       </div>
 
@@ -617,7 +625,7 @@
         </button>
       </div>
 
-      <div class="p-5 space-y-5 text-sm">
+      <div class="p-5 space-y-5 text-sm max-h-[82vh] overflow-y-auto">
         <!-- 主題底色 -->
         <div class="space-y-2">
           <label class="font-bold text-xs uppercase tracking-wider theme-muted">閱讀背景底色</label>
@@ -665,6 +673,20 @@
             <div class="text-xs theme-muted">移除 <code>ChiUn.json</code> 經文詞語間的空格，讓中文排版更連貫</div>
           </div>
           <button onclick="toggleCompactSpacing()" id="settingsSpacingBtn" class="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold shrink-0">
+            開啟中
+          </button>
+        </div>
+
+        <!-- 手機背景朗讀與防休眠保活設定 -->
+        <div class="p-3.5 rounded-2xl theme-secondary border flex items-center justify-between gap-3">
+          <div>
+            <div class="font-bold text-xs sm:text-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-mobile-screen-button text-emerald-500"></i>
+              <span>手機背景播放與鎖屏控制保活</span>
+            </div>
+            <div class="text-xs theme-muted">啟用無聲音軌保活、手機鎖屏媒體控制面板與防休眠常亮（支援 iPhone / Android）</div>
+          </div>
+          <button onclick="toggleBackgroundKeepAliveSetting()" id="settingsBgAliveBtn" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold shrink-0">
             開啟中
           </button>
         </div>
@@ -917,6 +939,7 @@
 
     /********************************************************************
      * 3. 多譯本資料庫、同目錄自動載入與 IndexedDB 離線儲存管理
+     *    (已刪去 新譯本 ChiNCV、思高本 ChiSB、WEB)
      ********************************************************************/
     const DEFAULT_SAME_FOLDER_TRANSLATIONS = [
       { id: "ChiUn",  fileName: "ChiUn.json",  name: "和合本 (繁體)",     short: "和合本", lang: "zh" },
@@ -943,7 +966,7 @@
       primaryTransId: "ChiUn",
       secondaryTransId: "KJV",
       parallelMode: false,             // 是否開啟雙譯本並行顯示
-      parallelDirection: "vertical",   // 預設改為 'vertical' (上下直排) | 'horizontal' (左右橫排) | 'interlinear' (逐節對照)
+      parallelDirection: "vertical",   // 預設為 'vertical' (上下直排) | 'horizontal' (左右橫排) | 'interlinear' (逐節對照)
       splitRatio: 50,                  // 第一個框佔比 (20 ~ 80 %)
       syncScroll: true,                // 雙框是否同步捲動
       theme: "white",                  // 'white' | 'sepia' | 'black'
@@ -960,6 +983,7 @@
       notes: {},                       // key: "GEN_1_1" -> { bookId, chapter, verse, text, note, createdAt }
       speech: {
         speaking: false,
+        bgKeepAlive: true,             // 手機背景音訊保活與螢幕常亮鎖
         target: "primary",             // 'primary' | 'secondary'
         activeTransId: "ChiUn",
         lang: "zh-HK",                 // 'zh-HK' | 'zh-TW' | 'en-US'
@@ -1228,11 +1252,12 @@
           const customList = await listRes.json();
           if (Array.isArray(customList)) {
             customList.forEach(item => {
-              if (item.fileName && !bibleStore.catalog.some(c => c.fileName.toLowerCase() === item.fileName.toLowerCase())) {
+              const id = item.id || (item.fileName || "").replace(/\.json$/i, "");
+              if (item.fileName && !REMOVED_TRANSLATION_IDS.includes(id) && !bibleStore.catalog.some(c => c.fileName.toLowerCase() === item.fileName.toLowerCase())) {
                 bibleStore.catalog.push({
-                  id: item.id || item.fileName.replace(/\.json$/i, ""),
+                  id,
                   fileName: item.fileName,
-                  name: item.name || item.id || item.fileName,
+                  name: item.name || id || item.fileName,
                   short: item.short || (item.name || item.fileName).slice(0, 6),
                   lang: item.lang || "zh"
                 });
@@ -1322,7 +1347,7 @@
     }
 
     /********************************************************************
-     * 5. 經文格式化與渲染 (支援單譯本、左右橫排並行、上下直排並行、逐節對照)
+     * 5. 經文格式化與渲染 (支援單譯本、上下直排並行、左右橫排並行、逐節對照)
      ********************************************************************/
     function isMergedVersePlaceholder(rawText) {
       const t = String(rawText || "").trim();
@@ -1505,7 +1530,7 @@
       });
     }
 
-    // 渲染可調比例的雙框並行顯示（橫向左右 / 直向上下）
+    // 渲染可調比例的雙框並行顯示（上下直排 / 左右橫排）
     function renderSplitParallelView(container, chapNum) {
       const isHorizontal = appState.parallelDirection === "horizontal";
       const t1 = appState.primaryTransId;
@@ -2212,7 +2237,7 @@
     }
 
     /********************************************************************
-     * 8. 外觀主題、字體大小與空白排版設定
+     * 8. 外觀主題、字體大小、行距與空白排版設定
      ********************************************************************/
     function setTheme(themeName) {
       appState.theme = themeName;
@@ -2230,7 +2255,6 @@
 
     function applyLineHeightVariables() {
       const lh = Number(appState.lineHeight) || 1.35;
-      // 根據行距動態微調每節上下 padding，讓極密模式能一次看最多行
       const py = lh <= 1.25 ? "1px" : lh <= 1.45 ? "2px" : "5px";
       document.documentElement.style.setProperty("--verse-line-height", String(lh));
       document.documentElement.style.setProperty("--verse-py", py);
@@ -2292,8 +2316,119 @@
     }
 
     /********************************************************************
-     * 9. 語音朗讀系統 (Web Speech API - 廣東話 / 普通話 / 英語)
+     * 9. 語音朗讀系統 + 手機 iPhone/Android 背景保活與鎖屏控制器
+     *    (Silent WAV Keep-Alive + Media Session API + Screen Wake Lock)
      ********************************************************************/
+    let silentKeepAliveAudio = null;
+    let screenWakeLock = null;
+
+    // 動態建立 1 秒鐘無聲 WAV 音軌並循環播放，讓 iOS / Android 將網頁視為背景媒體播放器
+    function initSilentKeepAliveAudio() {
+      if (silentKeepAliveAudio) return silentKeepAliveAudio;
+      try {
+        const sampleRate = 8000;
+        const numSamples = sampleRate * 1;
+        const buffer = new ArrayBuffer(44 + numSamples * 2);
+        const view = new DataView(buffer);
+        const writeStr = (offset, str) => {
+          for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+        };
+        writeStr(0, "RIFF");
+        view.setUint32(4, 36 + numSamples * 2, true);
+        writeStr(8, "WAVE");
+        writeStr(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, "data");
+        view.setUint32(40, numSamples * 2, true);
+
+        const blob = new Blob([buffer], { type: "audio/wav" });
+        silentKeepAliveAudio = new Audio(URL.createObjectURL(blob));
+        silentKeepAliveAudio.loop = true;
+        silentKeepAliveAudio.volume = 0.01;
+        silentKeepAliveAudio.setAttribute("playsinline", "true");
+      } catch (e) {}
+      return silentKeepAliveAudio;
+    }
+
+    async function acquireScreenWakeLock() {
+      if (!appState.speech.bgKeepAlive) return;
+      if ("wakeLock" in navigator) {
+        try {
+          if (screenWakeLock) await screenWakeLock.release();
+          screenWakeLock = await navigator.wakeLock.request("screen");
+        } catch (err) {}
+      }
+    }
+
+    function releaseScreenWakeLock() {
+      if (screenWakeLock) {
+        screenWakeLock.release().catch(() => {});
+        screenWakeLock = null;
+      }
+    }
+
+    // 當網頁從背景切回前景時，若仍在讀經則重新鎖定螢幕常亮
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && appState.speech.speaking) {
+        acquireScreenWakeLock();
+      }
+    });
+
+    // 更新 iPhone / Android 鎖屏畫面與通知欄的媒體控制面板 (Media Session API)
+    function updateMobileLockScreenMetadata(bookName, chapter, verseNum, verseText, transName) {
+      if (!("mediaSession" in navigator)) return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: `${bookName} 第 ${chapter} 章 : 第 ${verseNum} 節`,
+          artist: `${transName} · 浸信宣道會明恩堂`,
+          album: verseText.slice(0, 60)
+        });
+        navigator.mediaSession.playbackState = appState.speech.speaking ? "playing" : "none";
+
+        navigator.mediaSession.setActionHandler("play", () => {
+          if (!appState.speech.speaking) startSpeechFromIndex(appState.speech.currentVerseIndex);
+        });
+        navigator.mediaSession.setActionHandler("pause", () => {
+          stopSpeech();
+        });
+        navigator.mediaSession.setActionHandler("stop", () => {
+          stopSpeech();
+        });
+        navigator.mediaSession.setActionHandler("previoustrack", () => {
+          if (appState.speech.speaking) {
+            window.speechSynthesis.cancel();
+            appState.speech.currentVerseIndex = Math.max(0, appState.speech.currentVerseIndex - 1);
+            speakCurrentQueueVerse();
+          }
+        });
+        navigator.mediaSession.setActionHandler("nexttrack", () => {
+          if (appState.speech.speaking) {
+            window.speechSynthesis.cancel();
+            appState.speech.currentVerseIndex++;
+            speakCurrentQueueVerse();
+          }
+        });
+      } catch (e) {}
+    }
+
+    function toggleBackgroundKeepAliveSetting() {
+      appState.speech.bgKeepAlive = !appState.speech.bgKeepAlive;
+      const btn = document.getElementById("settingsBgAliveBtn");
+      if (btn) {
+        btn.textContent = appState.speech.bgKeepAlive ? "開啟中" : "已關閉";
+        btn.className = appState.speech.bgKeepAlive
+          ? "px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold shrink-0"
+          : "px-3 py-1.5 rounded-xl theme-surface border text-xs font-semibold shrink-0";
+      }
+      showToast(appState.speech.bgKeepAlive ? "已啟用手機背景播放與鎖屏控制保活" : "已關閉手機背景保活");
+    }
+
     function setSpeechTranslationTarget(target) {
       appState.speech.target = target;
       const transId = target === "secondary" ? appState.secondaryTransId : appState.primaryTransId;
@@ -2360,6 +2495,15 @@
         return;
       }
 
+      // 啟動手機無聲音訊背景通道與螢幕防休眠鎖
+      if (appState.speech.bgKeepAlive) {
+        const audio = initSilentKeepAliveAudio();
+        if (audio) {
+          audio.play().catch(() => {});
+        }
+        acquireScreenWakeLock();
+      }
+
       window.speechSynthesis.cancel();
       appState.speech.versesQueue = verses;
       appState.speech.activeTransId = targetTransId;
@@ -2400,6 +2544,14 @@
       document.getElementById("speakingStatusText").textContent = `正在讀：${bookMeta.short} ${appState.chapter}:${vObj.verse}`;
 
       const formatted = formatVerseText(vObj.text, activeTransId);
+      updateMobileLockScreenMetadata(
+        bookMeta.name,
+        appState.chapter,
+        vObj.verse,
+        formatted,
+        transObj?.short || activeTransId
+      );
+
       const cleanSpeakText = (transObj && transObj.lang === "en") ? formatted : formatted.replace(/\s+/g, "");
       const utter = new SpeechSynthesisUtterance(cleanSpeakText);
       utter.lang = appState.speech.lang;
@@ -2430,6 +2582,13 @@
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
+      if (silentKeepAliveAudio) {
+        silentKeepAliveAudio.pause();
+      }
+      releaseScreenWakeLock();
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.playbackState = "none"; } catch (e) {}
+      }
       appState.speech.speaking = false;
       document.querySelectorAll(".verse-row.speaking-active").forEach(el => el.classList.remove("speaking-active"));
       updateSpeechUI(false);
@@ -2439,16 +2598,25 @@
       const icon = document.getElementById("playSpeechIcon");
       const text = document.getElementById("playSpeechText");
       const stopBtn = document.getElementById("stopSpeechBtn");
+      const bgBadge = document.getElementById("bgPlayBadge");
       const statusText = document.getElementById("speakingStatusText");
 
       if (isSpeaking) {
         icon.className = "fa-solid fa-pause text-xs";
         text.textContent = "暫停";
         stopBtn.classList.remove("hidden");
+        if (bgBadge && appState.speech.bgKeepAlive) {
+          bgBadge.classList.remove("hidden");
+          bgBadge.classList.add("inline-flex");
+        }
       } else {
         icon.className = "fa-solid fa-play text-xs";
         text.textContent = "朗讀本章";
         stopBtn.classList.add("hidden");
+        if (bgBadge) {
+          bgBadge.classList.add("hidden");
+          bgBadge.classList.remove("inline-flex");
+        }
         statusText.textContent = "點擊經節可單節點選或從該節起讀";
       }
     }
@@ -2650,6 +2818,10 @@
       ctx.fillStyle = "#93c5fd";
       ctx.font = "bold 26px 'Inter', sans-serif";
       ctx.fillText(`— ${bookMeta.name} ${appState.chapter}:${appState.selectedVerseNum}`, 90, y + 80);
+
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.font = "18px 'Inter', sans-serif";
+      ctx.fillText("浸信宣道會明恩堂 · 聖經隨身寶", 90, 720);
 
       document.getElementById("verseCardModal").classList.remove("hidden");
     }
