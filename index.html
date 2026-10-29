@@ -295,9 +295,9 @@
   <main id="mainContainer" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 pt-4 pb-28">
     
     <!-- 章節標題與快速控制橫幅 -->
-    <div class="mb-3 pb-3 border-b theme-surface flex flex-wrap items-center justify-between gap-3">
+    <div class="mb-3 pb-2.5 border-b theme-surface flex flex-wrap items-center justify-between gap-2">
       <div>
-        <div class="flex flex-wrap items-center gap-2 text-xs theme-muted mb-1">
+        <div class="flex flex-wrap items-center gap-2 text-xs theme-muted mb-0.5">
           <span id="breadcrumbCategory" class="font-medium">舊約 · 摩西五經</span>
           <span>•</span>
           <button onclick="openTranslationsModal()" id="dataSourceBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-semibold hover:opacity-80 transition">
@@ -305,32 +305,34 @@
             <span id="dataSourceText">ChiUn: 和合本 (繁體字)</span>
           </button>
         </div>
-        <h1 id="chapterMainTitle" class="text-2xl sm:text-3xl font-bold tracking-tight">創世記 第 1 章</h1>
+        <h1 id="chapterMainTitle" class="text-xl sm:text-2xl font-bold tracking-tight">創世記 第 1 章</h1>
       </div>
 
-      <!-- 快速章節切換、選擇書卷與章節、底色與字級微調列 -->
-      <div class="flex flex-wrap items-center gap-1.5">
-        <button onclick="prevChapter()" title="上一章 (←)" class="px-2.5 py-1 rounded-lg theme-secondary border hover:border-blue-500 transition flex items-center gap-1 text-xs font-semibold active:scale-95">
-          <i class="fa-solid fa-arrow-left text-blue-500"></i>
-          <span>上一章</span>
+      <!-- 優化精簡闊度：上下章、選章節、轉底色、放大縮小字體 一體化緊湊控制列 -->
+      <div class="inline-flex items-center gap-1 p-1 rounded-xl theme-secondary border text-xs shrink-0 max-w-full overflow-x-auto">
+        <button onclick="prevChapter()" title="上一章 (←)" class="px-2 py-1 rounded-lg theme-surface border hover:border-blue-500 transition flex items-center gap-1 font-semibold active:scale-95 shrink-0">
+          <i class="fa-solid fa-arrow-left text-blue-500 text-[10px]"></i>
+          <span>上章</span>
         </button>
-        <button onclick="openBookModal()" title="選擇書卷與章節" class="px-2.5 py-1 rounded-lg bg-blue-600/10 text-blue-600 border border-blue-500/30 hover:bg-blue-600/20 transition flex items-center gap-1 text-xs font-bold active:scale-95">
-          <i class="fa-solid fa-book-open text-[11px]"></i>
-          <span>選擇書卷與章節</span>
+        <button onclick="openBookModal()" title="選擇書卷與章節" class="px-2 py-1 rounded-lg bg-blue-600/10 text-blue-600 border border-blue-500/30 hover:bg-blue-600/20 transition flex items-center gap-1 font-bold active:scale-95 shrink-0">
+          <i class="fa-solid fa-book-open text-[10px]"></i>
+          <span>選章節</span>
         </button>
-        <button onclick="nextChapter()" title="下一章 (→)" class="px-2.5 py-1 rounded-lg theme-secondary border hover:border-blue-500 transition flex items-center gap-1 text-xs font-semibold active:scale-95">
-          <span>下一章</span>
-          <i class="fa-solid fa-arrow-right text-blue-500"></i>
+        <button onclick="nextChapter()" title="下一章 (→)" class="px-2 py-1 rounded-lg theme-surface border hover:border-blue-500 transition flex items-center gap-1 font-semibold active:scale-95 shrink-0">
+          <span>下章</span>
+          <i class="fa-solid fa-arrow-right text-blue-500 text-[10px]"></i>
         </button>
 
-        <div class="h-4 w-[1px] bg-gray-300 dark:bg-gray-700 mx-0.5 hidden sm:block"></div>
+        <div class="h-3.5 w-[1px] bg-gray-300 dark:bg-gray-700 mx-0.5 shrink-0"></div>
 
-        <button onclick="setTheme('white')" title="白底日間模式" class="w-7 h-7 rounded-full border border-gray-300 bg-white text-gray-800 flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">白</button>
-        <button onclick="setTheme('sepia')" title="啡底護眼模式" class="w-7 h-7 rounded-full border border-amber-400 bg-[#f4ecd8] text-[#3d2e1e] flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">啡</button>
-        <button onclick="setTheme('black')" title="黑底夜間模式" class="w-7 h-7 rounded-full border border-gray-700 bg-[#0b0d11] text-gray-200 flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">黑</button>
-        <div class="h-4 w-[1px] bg-gray-300 dark:bg-gray-700 mx-0.5"></div>
-        <button onclick="changeFontSize(-2)" title="縮小字體" class="px-2.5 py-1 rounded-lg theme-secondary border text-xs font-bold hover:opacity-80 active:scale-95 transition">A-</button>
-        <button onclick="changeFontSize(2)" title="放大字體" class="px-2.5 py-1 rounded-lg theme-secondary border text-xs font-bold hover:opacity-80 active:scale-95 transition">A+</button>
+        <button onclick="setTheme('white')" title="白底日間模式" class="w-6 h-6 rounded-full border border-gray-300 bg-white text-gray-800 flex items-center justify-center text-[11px] font-bold shadow-2xs hover:scale-105 transition shrink-0">白</button>
+        <button onclick="setTheme('sepia')" title="啡底護眼模式" class="w-6 h-6 rounded-full border border-amber-400 bg-[#f4ecd8] text-[#3d2e1e] flex items-center justify-center text-[11px] font-bold shadow-2xs hover:scale-105 transition shrink-0">啡</button>
+        <button onclick="setTheme('black')" title="黑底夜間模式" class="w-6 h-6 rounded-full border border-gray-700 bg-[#0b0d11] text-gray-200 flex items-center justify-center text-[11px] font-bold shadow-2xs hover:scale-105 transition shrink-0">黑</button>
+
+        <div class="h-3.5 w-[1px] bg-gray-300 dark:bg-gray-700 mx-0.5 shrink-0"></div>
+
+        <button onclick="changeFontSize(-2)" title="縮小字體" class="px-1.5 py-1 rounded-lg theme-surface border text-[11px] font-bold hover:border-blue-500 active:scale-95 transition shrink-0">A-</button>
+        <button onclick="changeFontSize(2)" title="放大字體" class="px-1.5 py-1 rounded-lg theme-surface border text-[11px] font-bold hover:border-blue-500 active:scale-95 transition shrink-0">A+</button>
       </div>
     </div>
 
@@ -844,9 +846,9 @@
   <div id="devotionalModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeDevotionalModal()">
     <div class="w-full max-w-3xl max-h-[88vh] rounded-3xl theme-card border shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
       <!-- 頂部標題與分類切換 -->
-      <div class="p-4 border-b theme-surface flex flex-wrap items-center justify-between gap-2">
+      <div class="p-3.5 sm:p-4 border-b theme-surface flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
-          <h2 class="font-bold text-lg flex items-center gap-2">
+          <h2 class="font-bold text-base sm:text-lg flex items-center gap-1.5">
             <i class="fa-solid fa-dove text-amber-500"></i>
             <span>靈修與教會消息</span>
           </h2>
@@ -857,7 +859,14 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <!-- 靈修與教會消息字體大小縮放按鈕 -->
+          <div class="inline-flex items-center gap-1 p-0.5 rounded-xl theme-secondary border text-xs">
+            <button onclick="changeFontSize(-2)" title="縮小靈修與消息字體" class="px-2 py-1 rounded-lg theme-surface border font-bold hover:border-blue-500 active:scale-95 transition">A-</button>
+            <span id="devoFontSizeValue" class="px-1 text-[11px] font-bold text-blue-500">20px</span>
+            <button onclick="changeFontSize(2)" title="放大靈修與消息字體" class="px-2 py-1 rounded-lg theme-surface border font-bold hover:border-blue-500 active:scale-95 transition">A+</button>
+          </div>
+
           <!-- 語音語言快速顯示 -->
           <button onclick="cycleDevotionalSpeechLang()" id="devoSpeechLangBtn" title="切換靈修/消息朗讀語言" class="px-2.5 py-1 rounded-xl theme-secondary border text-xs font-semibold flex items-center gap-1 hover:border-blue-500 transition">
             <i class="fa-solid fa-headphones text-blue-500"></i>
@@ -865,7 +874,7 @@
           </button>
 
           <!-- Admin 登入 / 管理按鈕 -->
-          <button onclick="toggleAdminAuthPanel()" id="adminStatusBtn" class="px-3 py-1 rounded-xl theme-secondary border text-xs font-semibold flex items-center gap-1 hover:border-amber-500 transition">
+          <button onclick="toggleAdminAuthPanel()" id="adminStatusBtn" class="px-2.5 py-1 rounded-xl theme-secondary border text-xs font-semibold flex items-center gap-1 hover:border-amber-500 transition">
             <i class="fa-solid fa-lock text-amber-500" id="adminLockIcon"></i>
             <span id="adminStatusText">Admin</span>
           </button>
@@ -2424,6 +2433,9 @@
       if (container) container.style.fontSize = `${appState.fontSize}px`;
       const label = document.getElementById("fontSizeValueText");
       if (label) label.textContent = `${appState.fontSize}px`;
+      const devoFontLabel = document.getElementById("devoFontSizeValue");
+      if (devoFontLabel) devoFontLabel.textContent = `${appState.fontSize}px`;
+      renderDevotionalList();
     }
 
     function applyLineHeightVariables() {
@@ -3815,6 +3827,11 @@ function doPost(e) {
       const container = document.getElementById("devotionalListContainer");
       if (!container) return;
       container.innerHTML = "";
+      container.style.fontSize = `${appState.fontSize}px`;
+      container.classList.toggle("font-serif-bible", appState.fontStyle === "serif");
+
+      const devoFontLabel = document.getElementById("devoFontSizeValue");
+      if (devoFontLabel) devoFontLabel.textContent = `${appState.fontSize}px`;
 
       const filtered = devotionalState.items.filter(item => {
         if (devotionalState.activeTab === "ALL") return true;
@@ -3825,6 +3842,8 @@ function doPost(e) {
         container.innerHTML = `<div class="text-center py-12 theme-muted text-xs">目前尚無此類別的靈修或教會消息</div>`;
         return;
       }
+
+      const titleSizePx = Math.min(36, Math.max(16, appState.fontSize + 2));
 
       filtered.forEach(item => {
         const isPlaying = devotionalState.playingId === item.id;
@@ -3844,7 +3863,7 @@ function doPost(e) {
                 <span class="text-xs theme-muted">${escapeHtmlStr(item.date)}</span>
                 ${item.scripture ? `<span class="px-2 py-0.5 rounded-md theme-surface border text-xs font-semibold text-blue-500">${escapeHtmlStr(item.scripture)}</span>` : ""}
               </div>
-              <h3 class="font-bold text-base sm:text-lg">${escapeHtmlStr(item.title)}</h3>
+              <h3 class="font-bold leading-snug" style="font-size: ${titleSizePx}px;">${escapeHtmlStr(item.title)}</h3>
             </div>
 
             <div class="flex items-center gap-1.5 shrink-0">
@@ -3864,7 +3883,7 @@ function doPost(e) {
             </div>
           </div>
 
-          <div class="text-sm leading-relaxed whitespace-pre-line pt-1 border-t theme-surface">${escapeHtmlStr(item.content)}</div>
+          <div class=" whitespace-pre-line pt-2 border-t theme-surface" style="font-size: ${appState.fontSize}px; line-height: var(--verse-line-height, 1.45);">${escapeHtmlStr(item.content)}</div>
         `;
         container.appendChild(card);
       });
