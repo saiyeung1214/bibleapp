@@ -1,0 +1,2671 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>聖經隨身寶 — 多譯本並行與離線研讀版</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts: Inter & Noto Serif TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-primary: #111827;
+      --text-secondary: #4b5563;
+      --border-color: #e5e7eb;
+      --accent-color: #2563eb;
+      --verse-hover: rgba(37, 99, 235, 0.06);
+    }
+
+    body.theme-white {
+      --bg-primary: #f9fafb;
+      --bg-secondary: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-primary: #111827;
+      --text-secondary: #4b5563;
+      --border-color: #e5e7eb;
+      --verse-hover: rgba(37, 99, 235, 0.06);
+    }
+
+    body.theme-sepia {
+      --bg-primary: #f4ecd8;
+      --bg-secondary: #eadec2;
+      --bg-card: #fbf6e9;
+      --text-primary: #3d2e1e;
+      --text-secondary: #6e563c;
+      --border-color: #dccbb0;
+      --verse-hover: rgba(146, 64, 14, 0.08);
+    }
+
+    body.theme-black {
+      --bg-primary: #0b0d11;
+      --bg-secondary: #161922;
+      --bg-card: #12151c;
+      --text-primary: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --border-color: #262b38;
+      --verse-hover: rgba(59, 130, 246, 0.12);
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .font-serif-bible {
+      font-family: 'Noto Serif TC', "PMingLiU", Georgia, serif;
+    }
+
+    .theme-surface {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .theme-secondary {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .theme-card {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .theme-muted {
+      color: var(--text-secondary);
+    }
+
+    /* 經節互動與高亮樣式 */
+    .verse-row {
+      transition: background-color 0.15s ease, transform 0.1s ease;
+      line-height: 1.85;
+    }
+    .verse-row:hover {
+      background-color: var(--verse-hover);
+    }
+    .verse-row.selected-verse {
+      outline: 2px solid #3b82f6;
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+    .verse-row.speaking-active {
+      background-color: rgba(16, 185, 129, 0.18) !important;
+      border-left: 4px solid #10b981;
+    }
+    .verse-row.flash-target {
+      animation: pulseHighlight 2s ease-out;
+    }
+
+    @keyframes pulseHighlight {
+      0%, 30% { background-color: rgba(245, 158, 11, 0.35); }
+      100% { background-color: transparent; }
+    }
+
+    /* 螢光筆標記色 */
+    .hl-yellow { background-color: rgba(250, 204, 21, 0.28); }
+    .hl-green  { background-color: rgba(74, 222, 128, 0.25); }
+    .hl-blue   { background-color: rgba(96, 165, 250, 0.25); }
+    .hl-pink   { background-color: rgba(244, 114, 182, 0.25); }
+
+    /* 雙譯本並行分割容器與可拖曳分隔拉桿 */
+    .split-workspace {
+      display: flex;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 1rem;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+    }
+    .split-workspace.split-horizontal {
+      flex-direction: row;
+      height: calc(100vh - 250px);
+      min-height: 440px;
+    }
+    .split-workspace.split-vertical {
+      flex-direction: column;
+      height: calc(100vh - 230px);
+      min-height: 540px;
+    }
+    .split-pane {
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 110px;
+      min-height: 110px;
+      scroll-behavior: auto;
+    }
+    .split-resizer {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-secondary);
+      border-color: var(--border-color);
+      z-index: 10;
+      user-select: none;
+      touch-action: none;
+      transition: background-color 0.15s ease;
+      flex-shrink: 0;
+    }
+    .split-resizer:hover,
+    .split-resizer.dragging {
+      background-color: rgba(37, 99, 235, 0.22);
+    }
+    .split-horizontal > .split-resizer {
+      width: 14px;
+      cursor: col-resize;
+      border-left: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+    }
+    .split-vertical > .split-resizer {
+      height: 14px;
+      cursor: row-resize;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .resizer-pill {
+      border-radius: 9999px;
+      background-color: var(--text-secondary);
+      opacity: 0.55;
+    }
+    .split-horizontal .resizer-pill {
+      width: 4px;
+      height: 36px;
+    }
+    .split-vertical .resizer-pill {
+      width: 36px;
+      height: 4px;
+    }
+
+    /* 自訂捲軸 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.45);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+
+<body class="theme-white min-h-screen flex flex-col selection:bg-blue-500 selection:text-white">
+
+  <!-- 拖放譯本 JSON 全螢幕提示 -->
+  <div id="dragDropOverlay" class="fixed inset-0 z-50 hidden bg-blue-600/85 backdrop-blur-sm text-white flex flex-col items-center justify-center p-6 pointer-events-none">
+    <i class="fa-solid fa-file-import text-6xl mb-4 animate-bounce"></i>
+    <h2 class="text-2xl font-bold mb-1">放開以載入聖經譯本 JSON 檔案</h2>
+    <p class="text-sm opacity-90">支援同時拖入多個譯本 JSON 並自動儲存至本機離線資料庫</p>
+  </div>
+
+  <!-- 頂部固定導航列 -->
+  <header class="sticky top-0 z-30 theme-surface border-b shadow-xs backdrop-blur-md bg-opacity-95">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+      
+      <!-- 左側：品牌與快速選書卷章節按鈕 -->
+      <div class="flex items-center gap-2 min-w-0">
+        <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+          <i class="fa-solid fa-book-bible text-sm"></i>
+        </div>
+        <button onclick="openBookModal()" class="px-3 py-1.5 rounded-xl theme-secondary border hover:border-blue-500 transition flex items-center gap-2 min-w-0">
+          <span id="headerBookChapter" class="font-bold text-sm sm:text-base truncate">創世記 1章</span>
+          <i class="fa-solid fa-chevron-down text-xs opacity-70"></i>
+        </button>
+        <div class="hidden sm:flex items-center gap-1">
+          <button onclick="prevChapter()" title="上一章 (←)" class="w-8 h-8 rounded-xl theme-secondary border flex items-center justify-center hover:opacity-80 transition">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <button onclick="nextChapter()" title="下一章 (→)" class="w-8 h-8 rounded-xl theme-secondary border flex items-center justify-center hover:opacity-80 transition">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 右側功能按鈕群 -->
+      <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <!-- 譯本管理與離線下載按鈕 -->
+        <button onclick="openTranslationsModal()" title="譯本管理與離線下載" class="p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
+          <i class="fa-solid fa-language text-blue-500"></i>
+          <span id="headerPrimaryTransLabel" class="hidden lg:inline">和合本</span>
+          <span id="offlineCountBadge" class="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[10px] font-bold">離線</span>
+        </button>
+
+        <!-- 雙譯本並行顯示開關 -->
+        <button onclick="toggleParallelMode()" id="parallelToggleBtn" title="開啟/關閉雙譯本並行顯示" class="p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
+          <i class="fa-solid fa-table-columns text-indigo-500"></i>
+          <span class="hidden sm:inline">並行譯本</span>
+        </button>
+
+        <!-- 關鍵字搜尋 -->
+        <button onclick="openSearchModal()" title="搜尋經文內容" class="p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition flex items-center gap-1.5 text-sm">
+          <i class="fa-solid fa-magnifying-glass text-blue-500"></i>
+          <span class="hidden md:inline font-medium text-xs sm:text-sm">搜尋</span>
+        </button>
+
+        <!-- 空白排版快速切換 (針對 ChiUn.json 分詞空格) -->
+        <button onclick="toggleCompactSpacing()" id="spacingToggleBtn" title="切換緊湊排版 / 保留 ChiUn.json 原文空格" class="p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition flex items-center gap-1 text-xs font-medium">
+          <i class="fa-solid fa-compress text-emerald-500" id="spacingToggleIcon"></i>
+          <span id="spacingToggleLabel" class="hidden sm:inline">緊湊</span>
+        </button>
+
+        <!-- 書籤與筆記 -->
+        <button onclick="openBookmarksModal()" title="書籤與靈修筆記" class="p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition relative text-sm">
+          <i class="fa-regular fa-bookmark"></i>
+          <span id="bookmarkCountBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">0</span>
+        </button>
+
+        <!-- 外觀/字體/底色設定 -->
+        <button onclick="openSettingsModal()" title="字體大小、主題底色與設定" class="px-2.5 py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition font-serif font-bold text-sm">
+          Aa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 閱讀主畫面 -->
+  <main id="mainContainer" class="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 pt-4 pb-28">
+    
+    <!-- 章節標題與快速控制橫幅 -->
+    <div class="mb-3 pb-3 border-b theme-surface flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="flex flex-wrap items-center gap-2 text-xs theme-muted mb-1">
+          <span id="breadcrumbCategory" class="font-medium">舊約 · 摩西五經</span>
+          <span>•</span>
+          <button onclick="openTranslationsModal()" id="dataSourceBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-semibold hover:opacity-80 transition">
+            <i class="fa-solid fa-circle-check text-[10px]"></i>
+            <span id="dataSourceText">ChiUn: 和合本 (繁體字)</span>
+          </button>
+        </div>
+        <h1 id="chapterMainTitle" class="text-2xl sm:text-3xl font-bold tracking-tight">創世記 第 1 章</h1>
+      </div>
+
+      <!-- 快速底色與字級微調列 -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="setTheme('white')" title="白底日間模式" class="w-7 h-7 rounded-full border border-gray-300 bg-white text-gray-800 flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">白</button>
+        <button onclick="setTheme('sepia')" title="啡底護眼模式" class="w-7 h-7 rounded-full border border-amber-400 bg-[#f4ecd8] text-[#3d2e1e] flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">啡</button>
+        <button onclick="setTheme('black')" title="黑底夜間模式" class="w-7 h-7 rounded-full border border-gray-700 bg-[#0b0d11] text-gray-200 flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">黑</button>
+        <div class="h-4 w-[1px] bg-gray-300 dark:bg-gray-700 mx-0.5"></div>
+        <button onclick="changeFontSize(-2)" title="縮小字體" class="px-2.5 py-1 rounded-lg theme-secondary border text-xs font-bold hover:opacity-80 active:scale-95 transition">A-</button>
+        <button onclick="changeFontSize(2)" title="放大字體" class="px-2.5 py-1 rounded-lg theme-secondary border text-xs font-bold hover:opacity-80 active:scale-95 transition">A+</button>
+      </div>
+    </div>
+
+    <!-- 雙譯本並行控制工具列 (開啟並行模式時顯示) -->
+    <div id="parallelControlToolbar" class="hidden mb-4 p-3 rounded-2xl theme-secondary border space-y-2.5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <!-- 主譯本與副譯本選擇器 -->
+        <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-blue-600 text-white text-[11px] font-bold">譯本 1</span>
+            <select id="primaryTransSelect" onchange="onChangePrimaryTranslation(this.value)" class="px-2.5 py-1.5 rounded-xl theme-surface border font-semibold text-xs sm:text-sm cursor-pointer"></select>
+          </div>
+
+          <button onclick="swapParallelTranslations()" title="對調譯本 1 與譯本 2" class="w-8 h-8 rounded-xl theme-surface border flex items-center justify-center hover:border-blue-500 transition text-xs">
+            <i class="fa-solid fa-right-left text-blue-500"></i>
+          </button>
+
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[11px] font-bold">譯本 2</span>
+            <select id="secondaryTransSelect" onchange="onChangeSecondaryTranslation(this.value)" class="px-2.5 py-1.5 rounded-xl theme-surface border font-semibold text-xs sm:text-sm cursor-pointer"></select>
+          </div>
+
+          <button onclick="openTranslationsModal()" class="px-2.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 border border-blue-500/30 text-xs font-semibold hover:bg-blue-500/20 transition flex items-center gap-1">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>載入/管理譯本</span>
+          </button>
+        </div>
+
+        <!-- 排列方式（橫向左右 / 直向上下 / 逐節穿插） -->
+        <div class="flex flex-wrap items-center gap-1.5 text-xs">
+          <div class="inline-flex rounded-xl p-0.5 theme-surface border">
+            <button id="layoutBtnHorizontal" onclick="setParallelDirection('horizontal')" class="px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition flex items-center gap-1">
+              <i class="fa-solid fa-table-columns"></i>
+              <span>左右橫排</span>
+            </button>
+            <button id="layoutBtnVertical" onclick="setParallelDirection('vertical')" class="px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1">
+              <i class="fa-solid fa-bars"></i>
+              <span>上下直排</span>
+            </button>
+            <button id="layoutBtnInterlinear" onclick="setParallelDirection('interlinear')" class="px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1">
+              <i class="fa-solid fa-layer-group"></i>
+              <span>逐節對照</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 框體比例滑桿與同步捲動控制 (於左右橫排或上下直排顯示) -->
+      <div id="splitRatioControlBar" class="pt-2 border-t theme-surface flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+          <span class="font-semibold theme-muted shrink-0">
+            <i class="fa-solid fa-arrows-left-right-to-line text-blue-500 mr-1"></i>框比例 (<span id="splitRatioText">50% : 50%</span>)：
+          </span>
+          <input id="splitRatioSlider" type="range" min="20" max="80" step="1" value="50"
+                 oninput="setSplitRatio(this.value)"
+                 class="w-32 sm:w-44 accent-blue-600 cursor-pointer">
+          <div class="flex items-center gap-1">
+            <button onclick="setSplitRatio(35)" class="px-2 py-0.5 rounded-md theme-surface border hover:border-blue-500 font-medium">35:65</button>
+            <button onclick="setSplitRatio(50)" class="px-2 py-0.5 rounded-md theme-surface border hover:border-blue-500 font-medium">50:50</button>
+            <button onclick="setSplitRatio(65)" class="px-2 py-0.5 rounded-md theme-surface border hover:border-blue-500 font-medium">65:35</button>
+          </div>
+          <span class="text-[11px] theme-muted hidden md:inline">（亦可直接拖曳中間分隔線無段調校）</span>
+        </div>
+
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-semibold">
+          <input type="checkbox" id="syncScrollCheckbox" checked onchange="toggleSyncScroll(this.checked)" class="rounded accent-blue-600">
+          <span>雙框同步捲動</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 若尚未載入完整譯本時的快速匯入提示橫幅 -->
+    <div id="fileProtocolBanner" class="mb-4 p-3 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-blue-500 text-sm"></i>
+        <span id="fileProtocolBannerText">支援自動讀取與 <code>index.html</code> 同資料夾下的各譯本 JSON（如 <code>ChiUn.json</code>），或點選右側按鈕載入並儲存離線使用：</span>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-folder-open"></i> 選取譯本 JSON (可多選)
+          <input type="file" accept=".json" multiple onchange="importCustomJsonFile(event)" class="hidden">
+        </label>
+        <button onclick="openTranslationsModal()" class="px-3 py-1.5 rounded-xl theme-surface border font-semibold hover:opacity-80">
+          譯本庫
+        </button>
+      </div>
+    </div>
+
+    <!-- 載入中提示 -->
+    <div id="loadingIndicator" class="hidden my-6 p-4 rounded-2xl theme-secondary border flex items-center justify-center gap-3 text-sm font-medium">
+      <i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-lg"></i>
+      <span>正在讀取並建立離線聖經資料庫...</span>
+    </div>
+
+    <!-- 經文顯示主容器 (支援單譯本 / 左右橫排雙框 / 上下直排雙框 / 逐節穿插) -->
+    <div id="versesContainer" class="space-y-1 text-lg"></div>
+
+    <!-- 章節底部上下章切換按鈕 -->
+    <div class="mt-8 pt-4 border-t theme-surface flex items-center justify-between gap-3">
+      <button onclick="prevChapter()" class="px-4 py-2.5 rounded-2xl theme-secondary border hover:border-blue-500 transition flex items-center gap-2 text-sm font-semibold">
+        <i class="fa-solid fa-arrow-left text-blue-500"></i>
+        <span>上一章</span>
+      </button>
+      <button onclick="openBookModal()" class="px-4 py-2.5 rounded-2xl theme-secondary border hover:border-blue-500 transition text-xs sm:text-sm font-semibold">
+        選擇書卷 / 章節
+      </button>
+      <button onclick="nextChapter()" class="px-4 py-2.5 rounded-2xl theme-secondary border hover:border-blue-500 transition flex items-center gap-2 text-sm font-semibold">
+        <span>下一章</span>
+        <i class="fa-solid fa-arrow-right text-blue-500"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- 底部固定語音朗讀與章節控制列 -->
+  <footer class="fixed bottom-0 inset-x-0 z-30 theme-surface border-t shadow-lg backdrop-blur-md bg-opacity-95">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2 text-xs sm:text-sm">
+      <!-- 播放/停止與狀態 -->
+      <div class="flex items-center gap-2 min-w-0">
+        <button id="playSpeechBtn" onclick="toggleSpeech()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center gap-1.5 shrink-0 shadow-xs">
+          <i id="playSpeechIcon" class="fa-solid fa-play text-xs"></i>
+          <span id="playSpeechText">朗讀本章</span>
+        </button>
+        <button id="stopSpeechBtn" onclick="stopSpeech()" class="hidden px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-500 hover:bg-red-500/25 font-semibold transition">
+          <i class="fa-solid fa-stop"></i>
+        </button>
+        <span id="speakingStatusText" class="theme-muted text-xs truncate hidden sm:inline">點擊經節可單節點選或從該節起讀</span>
+      </div>
+
+      <!-- 廣東話/普通話/英語 與 語速調整 -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- 並行模式下選擇朗讀哪個譯本 -->
+        <select id="speechTransTargetSelect" onchange="setSpeechTranslationTarget(this.value)" title="選擇朗讀譯本" class="hidden px-2 py-1 rounded-xl theme-secondary border text-xs font-semibold cursor-pointer">
+          <option value="primary">讀譯本1</option>
+          <option value="secondary">讀譯本2</option>
+        </select>
+
+        <!-- 語言切換 -->
+        <div class="inline-flex rounded-xl p-0.5 theme-secondary border text-xs">
+          <button id="langBtnHK" onclick="setSpeechLang('zh-HK')" class="px-2 py-1 rounded-lg font-semibold bg-blue-600 text-white transition">廣東話</button>
+          <button id="langBtnTW" onclick="setSpeechLang('zh-TW')" class="px-2 py-1 rounded-lg font-semibold transition">普通話</button>
+          <button id="langBtnEN" onclick="setSpeechLang('en-US')" class="px-2 py-1 rounded-lg font-semibold transition">EN</button>
+        </div>
+
+        <!-- 語速調整 -->
+        <select onchange="updateSpeechRate(this.value)" title="朗讀語速" class="px-2 py-1 rounded-xl theme-secondary border text-xs font-semibold cursor-pointer">
+          <option value="0.8">0.8x</option>
+          <option value="1.0" selected>1.0x</option>
+          <option value="1.2">1.2x</option>
+          <option value="1.5">1.5x</option>
+        </select>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 單節點選互動抽屜 (螢光筆、書籤筆記、複製、金句圖卡、從此節朗讀) -->
+  <div id="verseActionDrawer" class="fixed inset-x-0 bottom-14 z-40 hidden">
+    <div class="max-w-xl mx-auto px-3 pb-2">
+      <div class="p-3.5 rounded-2xl theme-card border shadow-2xl space-y-3">
+        <div class="flex items-center justify-between border-b pb-2 theme-surface">
+          <span id="selectedVerseRef" class="font-bold text-sm text-blue-600">創世記 1:1</span>
+          <button onclick="closeVerseActionDrawer()" class="w-7 h-7 rounded-full theme-secondary flex items-center justify-center text-xs">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- 螢光筆顏色與功能按鈕 -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs theme-muted">標記：</span>
+            <button onclick="applyHighlight('hl-yellow')" class="w-6 h-6 rounded-full bg-yellow-300 border border-yellow-500 hover:scale-110 transition"></button>
+            <button onclick="applyHighlight('hl-green')" class="w-6 h-6 rounded-full bg-green-300 border border-green-500 hover:scale-110 transition"></button>
+            <button onclick="applyHighlight('hl-blue')" class="w-6 h-6 rounded-full bg-blue-300 border border-blue-500 hover:scale-110 transition"></button>
+            <button onclick="applyHighlight('hl-pink')" class="w-6 h-6 rounded-full bg-pink-300 border border-pink-500 hover:scale-110 transition"></button>
+            <button onclick="applyHighlight(null)" title="清除標記" class="w-6 h-6 rounded-full theme-secondary border flex items-center justify-center text-xs">
+              <i class="fa-solid fa-eraser"></i>
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <button onclick="speakFromSelectedVerse()" class="px-2.5 py-1.5 rounded-xl theme-secondary border hover:border-blue-500 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-volume-high text-blue-500"></i> 從此節讀
+            </button>
+            <button onclick="copySelectedVerse()" class="px-2.5 py-1.5 rounded-xl theme-secondary border hover:border-blue-500 font-semibold flex items-center gap-1">
+              <i class="fa-regular fa-copy text-emerald-500"></i> 複製
+            </button>
+            <button onclick="openNoteEditorForSelected()" class="px-2.5 py-1.5 rounded-xl theme-secondary border hover:border-blue-500 font-semibold flex items-center gap-1">
+              <i class="fa-regular fa-pen-to-square text-amber-500"></i> 筆記
+            </button>
+            <button onclick="generateVerseCard()" class="px-2.5 py-1.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 flex items-center gap-1">
+              <i class="fa-regular fa-image"></i> 金句卡
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 1：快速選擇書卷、章、節 ==================== -->
+  <div id="bookSelectModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeBookModal()">
+    <div class="w-full max-w-3xl max-h-[88vh] rounded-3xl theme-card border shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 border-b theme-surface flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <h2 class="font-bold text-lg">選擇書卷與章節</h2>
+          <div class="inline-flex rounded-xl p-0.5 theme-secondary border text-xs">
+            <button id="filterBtnOT" onclick="setBookFilter('OT')" class="px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white">舊約 (39)</button>
+            <button id="filterBtnNT" onclick="setBookFilter('NT')" class="px-2.5 py-1 rounded-lg font-semibold">新約 (27)</button>
+            <button id="filterBtnALL" onclick="setBookFilter('ALL')" class="px-2.5 py-1 rounded-lg font-semibold">全部</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleBookNameDisplay()" id="bookNameDisplayBtn" class="px-2.5 py-1 rounded-xl theme-secondary border text-xs font-semibold">
+            簡稱 / 全名
+          </button>
+          <button onclick="closeBookModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-12 gap-4">
+        <!-- 左側書卷網格 -->
+        <div class="md:col-span-7 space-y-2">
+          <div class="text-xs font-bold theme-muted">1. 點選書卷</div>
+          <div id="booksGridContainer" class="grid grid-cols-4 sm:grid-cols-5 gap-1.5"></div>
+        </div>
+        <!-- 右側章節與節數網格 -->
+        <div class="md:col-span-5 space-y-4 border-t md:border-t-0 md:border-l pt-3 md:pt-0 md:pl-4 theme-surface">
+          <div>
+            <div id="modalSelectedBookTitle" class="text-xs font-bold text-blue-500 mb-2">2. 選擇章數（創世記）</div>
+            <div id="chaptersGridContainer" class="grid grid-cols-5 gap-1.5 max-h-56 overflow-y-auto pr-1"></div>
+          </div>
+          <div>
+            <div class="text-xs font-bold theme-muted mb-2">3. 快速跳至指定節（選填）</div>
+            <div id="versesGridContainer" class="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 2：全本關鍵字搜尋 ==================== -->
+  <div id="searchModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeSearchModal()">
+    <div class="w-full max-w-2xl max-h-[86vh] rounded-3xl theme-card border shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 border-b theme-surface flex items-center justify-between gap-2">
+        <h2 class="font-bold text-lg flex items-center gap-2">
+          <i class="fa-solid fa-magnifying-glass text-blue-500"></i>
+          搜尋聖經經文
+        </h2>
+        <button onclick="closeSearchModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-4 border-b theme-surface space-y-2.5">
+        <div class="flex gap-2">
+          <input id="searchKeywordInput" type="text" placeholder="輸入關鍵字（如：創造天地、愛是恆久忍耐、耶和華是我的牧者）"
+                 onkeydown="if(event.key==='Enter') executeBibleSearch()"
+                 class="flex-1 px-3.5 py-2 rounded-xl theme-secondary border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button onclick="executeBibleSearch()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shrink-0 transition">
+            搜尋
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs theme-muted">
+          <div class="flex items-center gap-2">
+            <span>範圍：</span>
+            <select id="searchScopeSelect" class="px-2 py-1 rounded-lg theme-secondary border text-xs">
+              <option value="ALL">全本聖經 (舊新約)</option>
+              <option value="OT">僅舊約</option>
+              <option value="NT">僅新約</option>
+              <option value="CURRENT_BOOK">僅目前書卷</option>
+            </select>
+          </div>
+          <span id="searchSummaryText">支援自動忽略 ChiUn.json 原檔分詞空白進行精準檢索</span>
+        </div>
+      </div>
+
+      <div id="searchResultsContainer" class="flex-1 overflow-y-auto p-4 space-y-2 text-sm">
+        <div class="text-center py-10 theme-muted text-xs">請輸入關鍵字開始搜尋</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 3：字體、底色與檔案設定 ==================== -->
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeSettingsModal()">
+    <div class="w-full max-w-lg rounded-3xl theme-card border shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 border-b theme-surface flex items-center justify-between">
+        <h2 class="font-bold text-lg">閱讀顯示與系統設定</h2>
+        <button onclick="closeSettingsModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-5 text-sm">
+        <!-- 主題底色 -->
+        <div class="space-y-2">
+          <label class="font-bold text-xs uppercase tracking-wider theme-muted">閱讀背景底色</label>
+          <div class="grid grid-cols-3 gap-2.5">
+            <button onclick="setTheme('white')" class="p-3 rounded-2xl border border-gray-300 bg-white text-gray-900 font-semibold text-center hover:border-blue-500 transition">白底日間</button>
+            <button onclick="setTheme('sepia')" class="p-3 rounded-2xl border border-amber-400 bg-[#f4ecd8] text-[#3d2e1e] font-semibold text-center hover:border-blue-500 transition">啡底護眼</button>
+            <button onclick="setTheme('black')" class="p-3 rounded-2xl border border-gray-700 bg-[#0b0d11] text-gray-100 font-semibold text-center hover:border-blue-500 transition">黑底夜間</button>
+          </div>
+        </div>
+
+        <!-- 字體大小與襯線切換 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-xs uppercase tracking-wider theme-muted">字體大小與字型</label>
+            <span id="fontSizeValueText" class="text-xs font-bold text-blue-500">20px</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="changeFontSize(-2)" class="px-4 py-2 rounded-xl theme-secondary border font-bold">A-</button>
+            <button onclick="changeFontSize(2)" class="px-4 py-2 rounded-xl theme-secondary border font-bold">A+</button>
+            <button onclick="setFontStyle('sans')" id="fontSansBtn" class="flex-1 py-2 rounded-xl bg-blue-600 text-white font-semibold text-xs">黑體 (無襯線)</button>
+            <button onclick="setFontStyle('serif')" id="fontSerifBtn" class="flex-1 py-2 rounded-xl theme-secondary border font-serif-bible font-semibold text-xs">宋明體 (襯線)</button>
+          </div>
+        </div>
+
+        <!-- ChiUn.json 原檔分詞空白設定 -->
+        <div class="p-3.5 rounded-2xl theme-secondary border flex items-center justify-between gap-3">
+          <div>
+            <div class="font-bold text-xs sm:text-sm">自動合併中文分詞空格（緊湊模式）</div>
+            <div class="text-xs theme-muted">移除 <code>ChiUn.json</code> 經文詞語間的空格，讓中文排版更連貫</div>
+          </div>
+          <button onclick="toggleCompactSpacing()" id="settingsSpacingBtn" class="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold shrink-0">
+            開啟中
+          </button>
+        </div>
+
+        <!-- 譯本檔案狀態與離線管理 -->
+        <div class="p-4 rounded-2xl theme-secondary border space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-xs">譯本資料庫狀態</span>
+            <span id="localJsonStatus" class="text-xs px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 font-semibold">檢測中</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <label class="cursor-pointer px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition inline-flex items-center gap-1.5 shadow-xs">
+              <i class="fa-solid fa-file-import"></i> 選取譯本 JSON 載入 (可多選)
+              <input type="file" accept=".json" multiple onchange="importCustomJsonFile(event)" class="hidden">
+            </label>
+            <button onclick="closeSettingsModal(); openTranslationsModal();" class="px-3.5 py-2.5 rounded-xl theme-surface border text-xs font-semibold hover:opacity-80 inline-flex items-center gap-1.5">
+              <i class="fa-solid fa-language text-blue-500"></i> 開啟多譯本與離線管理
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 3B：多譯本管理與同資料夾離線下載 ==================== -->
+  <div id="translationsModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeTranslationsModal()">
+    <div class="w-full max-w-2xl max-h-[88vh] rounded-3xl theme-card border shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 border-b theme-surface flex items-center justify-between gap-2">
+        <div>
+          <h2 class="font-bold text-lg flex items-center gap-2">
+            <i class="fa-solid fa-language text-blue-500"></i>
+            多譯本管理與離線下載中心
+          </h2>
+          <p class="text-xs theme-muted mt-0.5">自動讀取與 <code>index.html</code> 同資料夾下的譯本，並可儲存至本機瀏覽器離線使用</p>
+        </div>
+        <button onclick="closeTranslationsModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 text-sm">
+        <!-- 批次操作與同資料夾自動掃描 -->
+        <div class="p-4 rounded-2xl theme-secondary border flex flex-wrap items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="font-bold text-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-hard-drive text-emerald-500"></i>
+              <span>一鍵下載同資料夾譯本（支援離線閱讀）</span>
+            </div>
+            <p class="text-xs theme-muted">
+              點擊「掃描並快取同目錄譯本」會自動從網站同目錄讀取各譯本 <code>.json</code> 並寫入本機 IndexedDB，之後即使無網絡也能隨時開啟並行對照。
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="scanSameFolderTranslations(true)" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
+              <i class="fa-solid fa-cloud-arrow-down"></i>
+              <span>掃描並快取同目錄譯本</span>
+            </button>
+            <label class="cursor-pointer px-3.5 py-2 rounded-xl theme-surface border text-xs font-semibold hover:border-blue-500 transition inline-flex items-center gap-1.5">
+              <i class="fa-solid fa-folder-plus text-blue-500"></i>
+              <span>從電腦選取 .json (支援多檔)</span>
+              <input type="file" accept=".json" multiple onchange="importCustomJsonFile(event)" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- 已登錄譯本清單 -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-xs uppercase tracking-wider theme-muted">同資料夾譯本與離線狀態</h3>
+            <span id="offlineStorageSummary" class="text-xs font-semibold text-emerald-600"></span>
+          </div>
+          <div id="translationsCatalogList" class="space-y-2.5"></div>
+        </div>
+
+        <!-- 自訂新增同資料夾譯本檔名 -->
+        <div class="p-4 rounded-2xl theme-secondary border space-y-2.5">
+          <label class="block font-bold text-xs sm:text-sm">
+            <i class="fa-solid fa-file-circle-plus text-indigo-500 mr-1"></i>
+            新增你在同資料夾放置的其他譯本檔案
+          </label>
+          <p class="text-xs theme-muted">
+            如果你在 <code>index.html</code> 同一資料夾放入了其他名稱的 JSON 譯本（例如 <code>CUVMP.json</code>、<code>ASV.json</code>），請輸入檔名直接載入並儲存離線：
+          </p>
+          <div class="flex flex-wrap sm:flex-nowrap gap-2">
+            <input id="customTransFilenameInput" type="text" placeholder="同資料夾檔名，例如：KJV.json 或 ChiNCV.json"
+                   class="flex-1 px-3 py-2 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input id="customTransLabelInput" type="text" placeholder="顯示名稱 (選填，如：新譯本)"
+                   class="w-full sm:w-44 px-3 py-2 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="addCustomSameFolderTranslation()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition">
+              載入並加入清單
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 4：書籤與靈修筆記 ==================== -->
+  <div id="bookmarksModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeBookmarksModal()">
+    <div class="w-full max-w-2xl max-h-[85vh] rounded-3xl theme-card border shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="p-4 border-b theme-surface flex items-center justify-between">
+        <h2 class="font-bold text-lg flex items-center gap-2">
+          <i class="fa-solid fa-bookmark text-amber-500"></i>
+          書籤與靈修筆記
+        </h2>
+        <button onclick="closeBookmarksModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- 新增/編輯筆記表單 -->
+      <div id="noteEditorBox" class="hidden p-4 border-b theme-secondary space-y-2.5">
+        <div id="noteEditorRefTitle" class="text-xs font-bold text-blue-500">創世記 1:1</div>
+        <textarea id="noteEditorTextarea" rows="3" placeholder="寫下你的靈修亮光、禱告或讀經筆記..."
+                  class="w-full p-3 rounded-xl theme-surface border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        <div class="flex justify-end gap-2">
+          <button onclick="cancelNoteEditor()" class="px-3 py-1.5 rounded-xl theme-surface border text-xs font-semibold">取消</button>
+          <button onclick="saveNoteFromEditor()" class="px-4 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold">儲存書籤筆記</button>
+        </div>
+      </div>
+
+      <div id="bookmarksListContainer" class="flex-1 overflow-y-auto p-4 space-y-2.5 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈出視窗 5：金句圖片卡產生器 ==================== -->
+  <div id="verseCardModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeVerseCardModal()">
+    <div class="w-full max-w-md rounded-3xl theme-card border shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-base">經文金句卡預覽</h3>
+        <button onclick="closeVerseCardModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="rounded-2xl overflow-hidden border shadow-inner flex justify-center bg-gray-900">
+        <canvas id="verseCardCanvas" width="800" height="800" class="w-full h-auto max-h-[360px] object-contain"></canvas>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="downloadVerseCardImage()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-download"></i> 下載金句圖片 (PNG)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 輕量提示 Toast -->
+  <div id="toastMessage" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2 rounded-2xl bg-gray-900/90 text-white text-xs sm:text-sm font-medium shadow-xl pointer-events-none transition-all"></div>
+
+  <script>
+    /********************************************************************
+     * 1. 聖經 66 卷完整書目結構 (對應 ChiUn.json 順序與章數)
+     ********************************************************************/
+    const BIBLE_BOOKS = [
+      // 舊約 39 卷
+      { id: "GEN", name: "創世記", short: "創", chapters: 50, testament: "OT", category: "摩西五經", aliases: ["創世記", "創世紀", "Genesis"] },
+      { id: "EXO", name: "出埃及記", short: "出", chapters: 40, testament: "OT", category: "摩西五經", aliases: ["出埃及記", "Exodus"] },
+      { id: "LEV", name: "利未記", short: "利", chapters: 27, testament: "OT", category: "摩西五經", aliases: ["利未記", "Leviticus"] },
+      { id: "NUM", name: "民數記", short: "民", chapters: 36, testament: "OT", category: "摩西五經", aliases: ["民數記", "Numbers"] },
+      { id: "DEU", name: "申命記", short: "申", chapters: 34, testament: "OT", category: "摩西五經", aliases: ["申命記", "Deuteronomy"] },
+      { id: "JOS", name: "約書亞記", short: "書", chapters: 24, testament: "OT", category: "歷史書", aliases: ["約書亞記", "Joshua"] },
+      { id: "JDG", name: "士師記", short: "士", chapters: 21, testament: "OT", category: "歷史書", aliases: ["士師記", "Judges"] },
+      { id: "RUT", name: "路得記", short: "得", chapters: 4, testament: "OT", category: "歷史書", aliases: ["路得記", "Ruth"] },
+      { id: "1SA", name: "撒母耳記上", short: "撒上", chapters: 31, testament: "OT", category: "歷史書", aliases: ["撒母耳記上", "1 Samuel"] },
+      { id: "2SA", name: "撒母耳記下", short: "撒下", chapters: 24, testament: "OT", category: "歷史書", aliases: ["撒母耳記下", "2 Samuel"] },
+      { id: "1KI", name: "列王紀上", short: "王上", chapters: 22, testament: "OT", category: "歷史書", aliases: ["列王紀上", "列王記上", "1 Kings"] },
+      { id: "2KI", name: "列王紀下", short: "王下", chapters: 25, testament: "OT", category: "歷史書", aliases: ["列王紀下", "列王記下", "2 Kings"] },
+      { id: "1CH", name: "歷代志上", short: "代上", chapters: 29, testament: "OT", category: "歷史書", aliases: ["歷代志上", "1 Chronicles"] },
+      { id: "2CH", name: "歷代志下", short: "代下", chapters: 36, testament: "OT", category: "歷史書", aliases: ["歷代志下", "2 Chronicles"] },
+      { id: "EZR", name: "以斯拉記", short: "拉", chapters: 10, testament: "OT", category: "歷史書", aliases: ["以斯拉記", "Ezra"] },
+      { id: "NEH", name: "尼希米記", short: "尼", chapters: 13, testament: "OT", category: "歷史書", aliases: ["尼希米記", "Nehemiah"] },
+      { id: "EST", name: "以斯帖記", short: "斯", chapters: 10, testament: "OT", category: "歷史書", aliases: ["以斯帖記", "Esther"] },
+      { id: "JOB", name: "約伯記", short: "伯", chapters: 42, testament: "OT", category: "詩歌智慧書", aliases: ["約伯記", "Job"] },
+      { id: "PSA", name: "詩篇", short: "詩", chapters: 150, testament: "OT", category: "詩歌智慧書", aliases: ["詩篇", "Psalms", "Psalm"] },
+      { id: "PRO", name: "箴言", short: "箴", chapters: 31, testament: "OT", category: "詩歌智慧書", aliases: ["箴言", "Proverbs"] },
+      { id: "ECC", name: "傳道書", short: "傳", chapters: 12, testament: "OT", category: "詩歌智慧書", aliases: ["傳道書", "Ecclesiastes"] },
+      { id: "SNG", name: "雅歌", short: "歌", chapters: 8, testament: "OT", category: "詩歌智慧書", aliases: ["雅歌", "Song of Solomon", "Song of Songs"] },
+      { id: "ISA", name: "以賽亞書", short: "賽", chapters: 66, testament: "OT", category: "大先知書", aliases: ["以賽亞書", "Isaiah"] },
+      { id: "JER", name: "耶利米書", short: "耶", chapters: 52, testament: "OT", category: "大先知書", aliases: ["耶利米書", "Jeremiah"] },
+      { id: "LAM", name: "耶利米哀歌", short: "哀", chapters: 5, testament: "OT", category: "大先知書", aliases: ["耶利米哀歌", "Lamentations"] },
+      { id: "EZK", name: "以西結書", short: "結", chapters: 48, testament: "OT", category: "大先知書", aliases: ["以西結書", "Ezekiel"] },
+      { id: "DAN", name: "但以理書", short: "但", chapters: 12, testament: "OT", category: "大先知書", aliases: ["但以理書", "Daniel"] },
+      { id: "HOS", name: "何西阿書", short: "何", chapters: 14, testament: "OT", category: "小先知書", aliases: ["何西阿書", "Hosea"] },
+      { id: "JOL", name: "約珥書", short: "珥", chapters: 3, testament: "OT", category: "小先知書", aliases: ["約珥書", "Joel"] },
+      { id: "AMO", name: "阿摩司書", short: "摩", chapters: 9, testament: "OT", category: "小先知書", aliases: ["阿摩司書", "Amos"] },
+      { id: "OBA", name: "俄巴底亞書", short: "俄", chapters: 1, testament: "OT", category: "小先知書", aliases: ["俄巴底亞書", "Obadiah"] },
+      { id: "JON", name: "約拿書", short: "拿", chapters: 4, testament: "OT", category: "小先知書", aliases: ["約拿書", "Jonah"] },
+      { id: "MIC", name: "彌迦書", short: "彌", chapters: 7, testament: "OT", category: "小先知書", aliases: ["彌迦書", "Micah"] },
+      { id: "NAM", name: "那鴻書", short: "鴻", chapters: 3, testament: "OT", category: "小先知書", aliases: ["那鴻書", "Nahum"] },
+      { id: "HAB", name: "哈巴谷書", short: "哈", chapters: 3, testament: "OT", category: "小先知書", aliases: ["哈巴谷書", "Habakkuk"] },
+      { id: "ZEP", name: "西番雅書", short: "番", chapters: 3, testament: "OT", category: "小先知書", aliases: ["西番雅書", "Zephaniah"] },
+      { id: "HAG", name: "哈該書", short: "該", chapters: 2, testament: "OT", category: "小先知書", aliases: ["哈該書", "Haggai"] },
+      { id: "ZEC", name: "撒迦利亞書", short: "亞", chapters: 14, testament: "OT", category: "小先知書", aliases: ["撒迦利亞書", "Zechariah"] },
+      { id: "MAL", name: "瑪拉基書", short: "瑪", chapters: 4, testament: "OT", category: "小先知書", aliases: ["瑪拉基書", "Malachi"] },
+      // 新約 27 卷
+      { id: "MAT", name: "馬太福音", short: "太", chapters: 28, testament: "NT", category: "四福音書", aliases: ["馬太福音", "Matthew"] },
+      { id: "MRK", name: "馬可福音", short: "可", chapters: 16, testament: "NT", category: "四福音書", aliases: ["馬可福音", "Mark"] },
+      { id: "LUK", name: "路加福音", short: "路", chapters: 24, testament: "NT", category: "四福音書", aliases: ["路加福音", "Luke"] },
+      { id: "JHN", name: "約翰福音", short: "約", chapters: 21, testament: "NT", category: "四福音書", aliases: ["約翰福音", "John"] },
+      { id: "ACT", name: "使徒行傳", short: "徒", chapters: 28, testament: "NT", category: "教會歷史", aliases: ["使徒行傳", "Acts"] },
+      { id: "ROM", name: "羅馬書", short: "羅", chapters: 16, testament: "NT", category: "保羅書信", aliases: ["羅馬書", "Romans"] },
+      { id: "1CO", name: "哥林多前書", short: "林前", chapters: 16, testament: "NT", category: "保羅書信", aliases: ["哥林多前書", "1 Corinthians"] },
+      { id: "2CO", name: "哥林多後書", short: "林後", chapters: 13, testament: "NT", category: "保羅書信", aliases: ["哥林多後書", "2 Corinthians"] },
+      { id: "GAL", name: "加拉太書", short: "加", chapters: 6, testament: "NT", category: "保羅書信", aliases: ["加拉太書", "Galatians"] },
+      { id: "EPH", name: "以弗所書", short: "弗", chapters: 6, testament: "NT", category: "保羅書信", aliases: ["以弗所書", "Ephesians"] },
+      { id: "PHP", name: "腓立比書", short: "腓", chapters: 4, testament: "NT", category: "保羅書信", aliases: ["腓立比書", "Philippians"] },
+      { id: "COL", name: "歌羅西書", short: "西", chapters: 4, testament: "NT", category: "保羅書信", aliases: ["歌羅西書", "Colossians"] },
+      { id: "1TH", name: "帖撒羅尼迦前書", short: "帖前", chapters: 5, testament: "NT", category: "保羅書信", aliases: ["帖撒羅尼迦前書", "1 Thessalonians"] },
+      { id: "2TH", name: "帖撒羅尼迦後書", short: "帖後", chapters: 3, testament: "NT", category: "保羅書信", aliases: ["帖撒羅尼迦後書", "2 Thessalonians"] },
+      { id: "1TI", name: "提摩太前書", short: "提前", chapters: 6, testament: "NT", category: "保羅書信", aliases: ["提摩太前書", "1 Timothy"] },
+      { id: "2TI", name: "提摩太後書", short: "提後", chapters: 4, testament: "NT", category: "保羅書信", aliases: ["提摩太後書", "2 Timothy"] },
+      { id: "TIT", name: "提多書", short: "多", chapters: 3, testament: "NT", category: "保羅書信", aliases: ["提多書", "Titus"] },
+      { id: "PHM", name: "腓利門書", short: "門", chapters: 1, testament: "NT", category: "保羅書信", aliases: ["腓利門書", "Philemon"] },
+      { id: "HEB", name: "希伯來書", short: "來", chapters: 13, testament: "NT", category: "普通書信", aliases: ["希伯來書", "Hebrews"] },
+      { id: "JAS", name: "雅各書", short: "雅", chapters: 5, testament: "NT", category: "普通書信", aliases: ["雅各書", "James"] },
+      { id: "1PE", name: "彼得前書", short: "彼前", chapters: 5, testament: "NT", category: "普通書信", aliases: ["彼得前書", "1 Peter"] },
+      { id: "2PE", name: "彼得後書", short: "彼後", chapters: 3, testament: "NT", category: "普通書信", aliases: ["彼得後書", "2 Peter"] },
+      { id: "1JN", name: "約翰一書", short: "約一", chapters: 5, testament: "NT", category: "普通書信", aliases: ["約翰一書", "約翰壹書", "1 John"] },
+      { id: "2JN", name: "約翰二書", short: "約二", chapters: 1, testament: "NT", category: "普通書信", aliases: ["約翰二書", "約翰貳書", "2 John"] },
+      { id: "3JN", name: "約翰三書", short: "約三", chapters: 1, testament: "NT", category: "普通書信", aliases: ["約翰三書", "約翰參書", "3 John"] },
+      { id: "JUD", name: "猶大書", short: "猶", chapters: 1, testament: "NT", category: "普通書信", aliases: ["猶大書", "Jude"] },
+      { id: "REV", name: "啟示錄", short: "啟", chapters: 22, testament: "NT", category: "預言書", aliases: ["啟示錄", "Revelation"] }
+    ];
+
+    /********************************************************************
+     * 2. 輕量預載結構樣本 (自動讀取同資料夾 ChiUn.json 與其他譯本前的即時預覽)
+     ********************************************************************/
+    const PRELOADED_CHIUN_SAMPLE = {
+      translation: "ChiUn: 和合本 (繁體字)",
+      books: [
+        {
+          name: "創世記",
+          chapters: [
+            {
+              chapter: 1,
+              verses: [
+                { verse: 1, text: "起初 ， 神 創造 天 地 。" },
+                { verse: 2, text: "地 是 空虛 混沌 ， 淵面 黑暗 ； 神 的 靈 運行 在 水面 上 。" },
+                { verse: 3, text: "神 說 ： 「 要 有 光 」 ， 就 有 了 光 。" }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    /********************************************************************
+     * 3. 多譯本資料庫、同目錄自動載入與 IndexedDB 離線儲存管理
+     ********************************************************************/
+    const DEFAULT_SAME_FOLDER_TRANSLATIONS = [
+      { id: "ChiUn",  fileName: "ChiUn.json",  name: "和合本 (繁體)",     short: "和合本", lang: "zh" },
+      { id: "ChiNCV", fileName: "ChiNCV.json", name: "聖經新譯本 (繁體)", short: "新譯本", lang: "zh" },
+      { id: "ChiSB",  fileName: "ChiSB.json",  name: "思高本聖經",       short: "思高本", lang: "zh" },
+      { id: "ChiLCC", fileName: "ChiLCC.json", name: "呂振中譯本",       short: "呂振中", lang: "zh" },
+      { id: "CUVS",   fileName: "ChiUns.json", name: "和合本 (簡體)",     short: "和合簡", lang: "zh" },
+      { id: "KJV",    fileName: "KJV.json",    name: "King James Version (KJV)", short: "KJV", lang: "en" },
+      { id: "BBE",    fileName: "BBE.json",    name: "Bible in Basic English (BBE)", short: "BBE", lang: "en" },
+      { id: "WEB",    fileName: "WEB.json",    name: "World English Bible (WEB)", short: "WEB", lang: "en" },
+      { id: "ASV",    fileName: "ASV.json",    name: "American Standard Version (ASV)", short: "ASV", lang: "en" }
+    ];
+
+    const bibleStore = {
+      translationName: "ChiUn: 和合本 (繁體字)",
+      isFullLoaded: false,
+      booksMap: {},
+      translations: {},
+      catalog: [...DEFAULT_SAME_FOLDER_TRANSLATIONS]
+    };
+
+    const appState = {
+      bookId: "GEN",
+      chapter: 1,
+      primaryTransId: "ChiUn",
+      secondaryTransId: "KJV",
+      parallelMode: false,             // 是否開啟雙譯本並行顯示
+      parallelDirection: "horizontal", // 'horizontal' (左右橫排) | 'vertical' (上下直排) | 'interlinear' (逐節對照)
+      splitRatio: 50,                  // 第一個框佔比 (20 ~ 80 %)
+      syncScroll: true,                // 雙框是否同步捲動
+      theme: "white",                  // 'white' | 'sepia' | 'black'
+      fontSize: 20,
+      fontStyle: "sans",               // 'sans' | 'serif'
+      compactSpacing: true,            // true: 自動移除分詞多餘空白 | false: 保留原檔空白
+      showShortBookName: true,
+      bookFilter: "OT",                // 'OT' | 'NT' | 'ALL'
+      modalSelectedBookId: "GEN",
+      selectedVerseNum: null,
+      selectedVerseText: "",
+      highlights: {},                  // key: "GEN_1_1" -> 'hl-yellow'
+      notes: {},                       // key: "GEN_1_1" -> { bookId, chapter, verse, text, note, createdAt }
+      speech: {
+        speaking: false,
+        target: "primary",             // 'primary' | 'secondary'
+        activeTransId: "ChiUn",
+        lang: "zh-HK",                 // 'zh-HK' | 'zh-TW' | 'en-US'
+        rate: 1.0,
+        currentVerseIndex: 0,
+        versesQueue: []
+      }
+    };
+
+    // IndexedDB 離線資料庫封裝 (讓用戶下載一次譯本後可永久離線使用)
+    const IDB_NAME = "BiblePocketOfflineDB";
+    const IDB_VERSION = 1;
+    const IDB_STORE = "translations";
+
+    function openOfflineDB() {
+      return new Promise(resolve => {
+        if (!("indexedDB" in window)) {
+          resolve(null);
+          return;
+        }
+        const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+        req.onupgradeneeded = e => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE, { keyPath: "id" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      });
+    }
+
+    async function saveTranslationToOfflineDB(transId, meta, rawJsonData) {
+      try {
+        const db = await openOfflineDB();
+        if (!db) return false;
+        return new Promise(resolve => {
+          const tx = db.transaction(IDB_STORE, "readwrite");
+          const store = tx.objectStore(IDB_STORE);
+          store.put({
+            id: transId,
+            fileName: meta.fileName || `${transId}.json`,
+            name: meta.name || rawJsonData.translation || transId,
+            short: meta.short || transId,
+            lang: meta.lang || "zh",
+            savedAt: new Date().toISOString(),
+            data: rawJsonData
+          });
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function loadAllTranslationsFromOfflineDB() {
+      try {
+        const db = await openOfflineDB();
+        if (!db) return [];
+        return new Promise(resolve => {
+          const tx = db.transaction(IDB_STORE, "readonly");
+          const store = tx.objectStore(IDB_STORE);
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => resolve([]);
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+
+    async function removeTranslationFromOfflineDB(transId) {
+      try {
+        const db = await openOfflineDB();
+        if (!db) return false;
+        return new Promise(resolve => {
+          const tx = db.transaction(IDB_STORE, "readwrite");
+          tx.objectStore(IDB_STORE).delete(transId);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) {
+        return false;
+      }
+    }
+
+    /********************************************************************
+     * 4. 解析並匯入多譯本 JSON 格式資料
+     ********************************************************************/
+    function findBookMetaByJsonName(rawName, index) {
+      if (rawName) {
+        const cleaned = String(rawName).trim();
+        const found = BIBLE_BOOKS.find(
+          b => b.name === cleaned || b.short === cleaned || b.id.toLowerCase() === cleaned.toLowerCase() || b.aliases.some(a => a.toLowerCase() === cleaned.toLowerCase())
+        );
+        if (found) return found;
+      }
+      if (typeof index === "number" && BIBLE_BOOKS[index]) {
+        return BIBLE_BOOKS[index];
+      }
+      return null;
+    }
+
+    function inferTranslationMeta(jsonData, fileName = "") {
+      const cleanFile = String(fileName).replace(/^.*[\\/]/, "");
+      const baseId = cleanFile.replace(/\.json$/i, "") || "Custom";
+      const existingCat = bibleStore.catalog.find(
+        c => c.id.toLowerCase() === baseId.toLowerCase() || c.fileName.toLowerCase() === cleanFile.toLowerCase()
+      );
+      if (existingCat) return existingCat;
+
+      const rawTitle = String(jsonData?.translation || baseId).trim();
+      const isEnglish = /^[a-z0-9\s:().,-]+$/i.test(rawTitle) && !/[\u4e00-\u9fa5]/.test(rawTitle);
+      const shortName = rawTitle.split(":")[0].trim().slice(0, 8) || baseId.slice(0, 8);
+      const newMeta = {
+        id: baseId,
+        fileName: cleanFile || `${baseId}.json`,
+        name: rawTitle,
+        short: shortName,
+        lang: isEnglish ? "en" : "zh"
+      };
+      bibleStore.catalog.push(newMeta);
+      return newMeta;
+    }
+
+    function registerTranslationData(transId, jsonData, options = {}) {
+      if (!jsonData || !Array.isArray(jsonData.books)) {
+        throw new Error("JSON 格式不符，找不到 books 陣列");
+      }
+
+      const catalogEntry = bibleStore.catalog.find(c => c.id === transId) || inferTranslationMeta(jsonData, options.fileName || `${transId}.json`);
+      const booksMap = {};
+      let importedBookCount = 0;
+      let importedChapterCount = 0;
+
+      jsonData.books.forEach((bookObj, idx) => {
+        const meta = findBookMetaByJsonName(bookObj.name, idx);
+        if (!meta || !Array.isArray(bookObj.chapters)) return;
+
+        if (!booksMap[meta.id]) {
+          booksMap[meta.id] = {};
+        }
+
+        bookObj.chapters.forEach(chapObj => {
+          const chapNum = String(chapObj.chapter);
+          if (Array.isArray(chapObj.verses) && chapObj.verses.length > 0) {
+            booksMap[meta.id][chapNum] = chapObj.verses.map(v => ({
+              verse: Number(v.verse),
+              text: String(v.text || "")
+            }));
+            importedChapterCount++;
+          }
+        });
+        importedBookCount++;
+      });
+
+      const isFull = Boolean(options.isFullFile || importedBookCount >= 30);
+      const displayName = jsonData.translation || catalogEntry.name || transId;
+
+      bibleStore.translations[transId] = {
+        id: transId,
+        fileName: catalogEntry.fileName,
+        name: displayName,
+        short: catalogEntry.short || transId,
+        lang: catalogEntry.lang || (/[\u4e00-\u9fa5]/.test(displayName) ? "zh" : "en"),
+        isFullLoaded: isFull,
+        isOfflineCached: Boolean(options.isOfflineCached),
+        bookCount: importedBookCount,
+        chapterCount: importedChapterCount,
+        booksMap,
+        rawJson: isFull ? jsonData : null
+      };
+
+      if (transId === appState.primaryTransId) {
+        bibleStore.translationName = displayName;
+        bibleStore.isFullLoaded = isFull;
+        bibleStore.booksMap = booksMap;
+      }
+
+      updateDataSourceUI();
+      populateTranslationSelectors();
+      renderTranslationsCatalogModal();
+      return bibleStore.translations[transId];
+    }
+
+    function parseChiUnJsonData(jsonData, isFullFile = false) {
+      return registerTranslationData("ChiUn", jsonData, { isFullFile, fileName: "ChiUn.json" });
+    }
+
+    function updateDataSourceUI() {
+      const primaryObj = bibleStore.translations[appState.primaryTransId];
+      const badgeText = document.getElementById("dataSourceText");
+      const statusEl = document.getElementById("localJsonStatus");
+      const bannerEl = document.getElementById("fileProtocolBanner");
+      const headerLabel = document.getElementById("headerPrimaryTransLabel");
+      const offlineBadge = document.getElementById("offlineCountBadge");
+
+      const loadedTranslations = Object.values(bibleStore.translations).filter(t => t.isFullLoaded);
+      const offlineCachedCount = Object.values(bibleStore.translations).filter(t => t.isOfflineCached).length;
+
+      if (headerLabel && primaryObj) {
+        headerLabel.textContent = appState.parallelMode
+          ? `${primaryObj.short} + ${(bibleStore.translations[appState.secondaryTransId]?.short || appState.secondaryTransId)}`
+          : primaryObj.short;
+      }
+
+      if (offlineBadge) {
+        offlineBadge.textContent = offlineCachedCount > 0 ? `${offlineCachedCount}離線` : `${loadedTranslations.length}譯本`;
+      }
+
+      if (primaryObj && primaryObj.isFullLoaded) {
+        badgeText.textContent = `${primaryObj.name} · 已就緒 (${primaryObj.bookCount}卷)`;
+        if (statusEl) {
+          statusEl.textContent = `已載入 ${loadedTranslations.length} 部完整譯本 (${offlineCachedCount} 部已存離線)`;
+          statusEl.className = "text-xs px-2.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 font-semibold";
+        }
+        bannerEl.classList.add("hidden");
+      } else {
+        badgeText.textContent = `${primaryObj ? primaryObj.name : "ChiUn"} (等待載入同資料夾 JSON)`;
+        if (statusEl) {
+          statusEl.textContent = `等待從同目錄載入完整 JSON 譯本`;
+          statusEl.className = "text-xs px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 font-semibold";
+        }
+        bannerEl.classList.remove("hidden");
+      }
+    }
+
+    // 從同目錄抓取指定譯本 JSON 並自動存入 IndexedDB 離線快取
+    async function fetchTranslationFromSameFolder(catalogItem, silent = true) {
+      const candidatePaths = [`./${catalogItem.fileName}`, catalogItem.fileName];
+      for (const path of candidatePaths) {
+        try {
+          const res = await fetch(path, { cache: "no-cache" });
+          if (res.ok) {
+            const data = await res.json();
+            await saveTranslationToOfflineDB(catalogItem.id, catalogItem, data);
+            registerTranslationData(catalogItem.id, data, {
+              isFullFile: true,
+              isOfflineCached: true,
+              fileName: catalogItem.fileName
+            });
+            if (!silent) {
+              showToast(`已載入並離線儲存：${catalogItem.name} (${catalogItem.fileName})`);
+            }
+            return true;
+          }
+        } catch (err) {
+          // 忽略單一檔案不存在或 file:// 限制
+        }
+      }
+      if (!silent) {
+        showToast(`同資料夾下找不到 ${catalogItem.fileName}，請確認檔名或使用手動選取`);
+      }
+      return false;
+    }
+
+    // 掃描同資料夾下的 translations.json 清單及預設譯本檔案
+    async function scanSameFolderTranslations(showFeedback = false) {
+      const loadingEl = document.getElementById("loadingIndicator");
+      if (showFeedback) loadingEl.classList.remove("hidden");
+
+      try {
+        const listRes = await fetch("./translations.json", { cache: "no-cache" });
+        if (listRes.ok) {
+          const customList = await listRes.json();
+          if (Array.isArray(customList)) {
+            customList.forEach(item => {
+              if (item.fileName && !bibleStore.catalog.some(c => c.fileName.toLowerCase() === item.fileName.toLowerCase())) {
+                bibleStore.catalog.push({
+                  id: item.id || item.fileName.replace(/\.json$/i, ""),
+                  fileName: item.fileName,
+                  name: item.name || item.id || item.fileName,
+                  short: item.short || (item.name || item.fileName).slice(0, 6),
+                  lang: item.lang || "zh"
+                });
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      let foundCount = 0;
+      const results = await Promise.all(
+        bibleStore.catalog.map(item => fetchTranslationFromSameFolder(item, true))
+      );
+      results.forEach(ok => { if (ok) foundCount++; });
+
+      const availableIds = Object.keys(bibleStore.translations).filter(id => bibleStore.translations[id].isFullLoaded);
+      if (availableIds.length >= 2 && !bibleStore.translations[appState.secondaryTransId]?.isFullLoaded) {
+        const alt = availableIds.find(id => id !== appState.primaryTransId);
+        if (alt) appState.secondaryTransId = alt;
+      }
+
+      if (showFeedback) {
+        loadingEl.classList.add("hidden");
+        renderCurrentChapter();
+        renderTranslationsCatalogModal();
+        if (foundCount > 0) {
+          showToast(`已從同資料夾載入並快取 ${foundCount} 部聖經譯本！`);
+        } else {
+          showToast("未能直接讀取同目錄檔案（若本機雙擊開啟 HTML，請用「選取 .json」匯入）");
+        }
+      }
+      return foundCount;
+    }
+
+    function importCustomJsonFile(event) {
+      const files = Array.from(event.target?.files || []);
+      if (files.length === 0) return;
+      readAndLoadMultipleJsonFiles(files);
+      event.target.value = "";
+    }
+
+    function readAndLoadMultipleJsonFiles(files) {
+      const loadingEl = document.getElementById("loadingIndicator");
+      loadingEl.classList.remove("hidden");
+
+      let loadedCount = 0;
+      let lastLoadedId = null;
+
+      Promise.all(
+        files.map(file => new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = async e => {
+            try {
+              const json = JSON.parse(e.target.result);
+              const meta = inferTranslationMeta(json, file.name);
+              await saveTranslationToOfflineDB(meta.id, meta, json);
+              registerTranslationData(meta.id, json, {
+                isFullFile: true,
+                isOfflineCached: true,
+                fileName: file.name
+              });
+              loadedCount++;
+              lastLoadedId = meta.id;
+              resolve(true);
+            } catch (err) {
+              resolve(false);
+            }
+          };
+          reader.onerror = () => resolve(false);
+          reader.readAsText(file, "UTF-8");
+        }))
+      ).then(() => {
+        loadingEl.classList.add("hidden");
+        if (loadedCount > 0) {
+          if (files.length === 1 && lastLoadedId && lastLoadedId !== appState.primaryTransId) {
+            appState.secondaryTransId = lastLoadedId;
+          }
+          populateTranslationSelectors();
+          renderCurrentChapter();
+          renderBooksGrid();
+          renderTranslationsCatalogModal();
+          showToast(`成功匯入 ${loadedCount} 部譯本並已儲存至離線資料庫！`);
+        } else {
+          showToast("JSON 解析失敗，請確認檔案格式與 ChiUn.json 結構相同");
+        }
+      });
+    }
+
+    /********************************************************************
+     * 5. 經文格式化與渲染 (支援單譯本、左右橫排並行、上下直排並行、逐節對照)
+     ********************************************************************/
+    function isMergedVersePlaceholder(rawText) {
+      const t = String(rawText || "").trim();
+      return t === "a" || t === "併入上節" || t === "-";
+    }
+
+    function formatVerseText(rawText, transId = appState.primaryTransId) {
+      if (!rawText) return "";
+      const trimmed = rawText.trim();
+      if (isMergedVersePlaceholder(trimmed)) {
+        return "（併入上節）";
+      }
+      const transObj = bibleStore.translations[transId];
+      if (transObj && transObj.lang === "en") {
+        return trimmed.replace(/\s+/g, " ");
+      }
+      if (!appState.compactSpacing) {
+        return trimmed;
+      }
+      return trimmed
+        .replace(/([\u4e00-\u9fa5，。！？；：「」『』（）《》、─‧])\s+(?=[\u4e00-\u9fa5，。！？；：「」『』（）《》、─‧])/g, "$1")
+        .replace(/\s+/g, " ");
+    }
+
+    function getBookMeta(bookId) {
+      return BIBLE_BOOKS.find(b => b.id === bookId) || BIBLE_BOOKS[0];
+    }
+
+    function getChapterVerses(bookId, chapterNum, transId = appState.primaryTransId) {
+      const transObj = bibleStore.translations[transId];
+      const map = transObj ? transObj.booksMap : bibleStore.booksMap;
+      if (map && map[bookId] && map[bookId][String(chapterNum)]) {
+        return map[bookId][String(chapterNum)];
+      }
+      return null;
+    }
+
+    function buildMissingTranslationNoticeHTML(transId) {
+      const cat = bibleStore.catalog.find(c => c.id === transId) || { id: transId, fileName: `${transId}.json`, name: transId };
+      return `
+        <div class="my-4 p-5 rounded-2xl theme-secondary border text-center space-y-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center mx-auto text-lg">
+            <i class="fa-solid fa-file-arrow-down"></i>
+          </div>
+          <div class="space-y-1">
+            <h4 class="font-bold text-sm">尚未載入「${cat.name}」(${cat.fileName}) 完整章節</h4>
+            <p class="text-xs theme-muted max-w-sm mx-auto leading-relaxed">
+              請將 <code>${cat.fileName}</code> 放在與 <code>index.html</code> 同一個資料夾，或點擊下方按鈕選取檔案載入離線使用。
+            </p>
+          </div>
+          <div class="flex flex-wrap justify-center gap-2 pt-1">
+            <button onclick="fetchAndCacheById('${cat.id}')" class="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition inline-flex items-center gap-1.5">
+              <i class="fa-solid fa-rotate"></i> 從同資料夾讀取 ${cat.fileName}
+            </button>
+            <label class="cursor-pointer px-3.5 py-1.5 rounded-xl theme-surface border text-xs font-semibold hover:border-blue-500 transition inline-flex items-center gap-1.5">
+              <i class="fa-solid fa-folder-open text-blue-500"></i> 手動選取 JSON
+              <input type="file" accept=".json" multiple onchange="importCustomJsonFile(event)" class="hidden">
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    function createSinglePaneVerseElement(vObj, idx, transId, panePrefix) {
+      const chapNum = appState.chapter;
+      const vNum = vObj.verse;
+      const key = `${appState.bookId}_${chapNum}_${vNum}`;
+      const hlClass = appState.highlights[key] || "";
+      const hasNote = Boolean(appState.notes[key]);
+      const isMerged = isMergedVersePlaceholder(vObj.text);
+      const formattedText = formatVerseText(vObj.text, transId);
+
+      const row = document.createElement("div");
+      row.id = `${panePrefix}-verse-row-${vNum}`;
+      row.dataset.verse = vNum;
+      row.dataset.index = idx;
+      row.className = `verse-row verse-num-${vNum} px-3 py-2 rounded-xl cursor-pointer flex items-baseline gap-2.5 ${hlClass} ${appState.selectedVerseNum === vNum ? "selected-verse" : ""}`;
+      row.onclick = () => onVerseRowClick(vNum, formattedText, transId);
+
+      row.innerHTML = `
+        <span class="text-xs font-bold text-blue-500 select-none shrink-0 w-7 text-right">${vNum}</span>
+        <div class="flex-1">
+          <span class="${isMerged ? "text-xs italic theme-muted" : ""}">${formattedText}</span>
+          ${hasNote ? `<i class="fa-solid fa-bookmark text-amber-500 text-xs ml-1.5" title="已加書籤筆記"></i>` : ""}
+        </div>
+      `;
+      return row;
+    }
+
+    function renderCurrentChapter(highlightVerseNum = null) {
+      const bookMeta = getBookMeta(appState.bookId);
+      const chapNum = appState.chapter;
+
+      document.getElementById("headerBookChapter").textContent = `${bookMeta.name} ${chapNum}章`;
+      document.getElementById("breadcrumbCategory").textContent = `${bookMeta.testament === "OT" ? "舊約" : "新約"} · ${bookMeta.category}`;
+      document.getElementById("chapterMainTitle").textContent = `${bookMeta.name} 第 ${chapNum} 章`;
+      updateDataSourceUI();
+
+      const container = document.getElementById("versesContainer");
+      container.style.fontSize = `${appState.fontSize}px`;
+      container.classList.toggle("font-serif-bible", appState.fontStyle === "serif");
+      container.innerHTML = "";
+
+      if (!appState.parallelMode) {
+        const verses = getChapterVerses(appState.bookId, chapNum, appState.primaryTransId);
+        if (!verses || verses.length === 0) {
+          container.innerHTML = buildMissingTranslationNoticeHTML(appState.primaryTransId);
+          return;
+        }
+        verses.forEach((vObj, idx) => {
+          const row = createSinglePaneVerseElement(vObj, idx, appState.primaryTransId, "pane1");
+          row.id = `verse-row-${vObj.verse}`;
+          container.appendChild(row);
+        });
+      } else if (appState.parallelDirection === "interlinear") {
+        renderInterlinearParallelView(container, chapNum);
+      } else {
+        renderSplitParallelView(container, chapNum);
+      }
+
+      if (highlightVerseNum) {
+        setTimeout(() => {
+          scrollToVerseInView(highlightVerseNum);
+        }, 80);
+      }
+    }
+
+    // 渲染逐節上下穿插對照
+    function renderInterlinearParallelView(container, chapNum) {
+      const t1 = appState.primaryTransId;
+      const t2 = appState.secondaryTransId;
+      const meta1 = bibleStore.translations[t1] || bibleStore.catalog.find(c => c.id === t1) || { short: t1 };
+      const meta2 = bibleStore.translations[t2] || bibleStore.catalog.find(c => c.id === t2) || { short: t2 };
+
+      const verses1 = getChapterVerses(appState.bookId, chapNum, t1) || [];
+      const verses2 = getChapterVerses(appState.bookId, chapNum, t2) || [];
+
+      if (verses1.length === 0 && verses2.length === 0) {
+        container.innerHTML = buildMissingTranslationNoticeHTML(t1);
+        return;
+      }
+
+      const map2 = {};
+      verses2.forEach(v => { map2[v.verse] = v.text; });
+      const baseList = verses1.length > 0 ? verses1 : verses2;
+
+      baseList.forEach(vObj => {
+        const vNum = vObj.verse;
+        const key = `${appState.bookId}_${chapNum}_${vNum}`;
+        const hlClass = appState.highlights[key] || "";
+        const hasNote = Boolean(appState.notes[key]);
+
+        const text1 = verses1.length > 0 ? formatVerseText(vObj.text, t1) : "（尚未載入此譯本）";
+        const raw2 = map2[vNum];
+        const text2 = raw2 !== undefined ? formatVerseText(raw2, t2) : "（尚未載入此譯本）";
+
+        const row = document.createElement("div");
+        row.id = `verse-row-${vNum}`;
+        row.className = `verse-row verse-num-${vNum} p-3 rounded-2xl border theme-card mb-2.5 cursor-pointer space-y-1.5 ${hlClass} ${appState.selectedVerseNum === vNum ? "selected-verse" : ""}`;
+        row.onclick = () => onVerseRowClick(vNum, text1, t1);
+
+        row.innerHTML = `
+          <div class="flex items-baseline gap-2.5">
+            <span class="text-xs font-bold text-blue-500 select-none shrink-0 w-7 text-right">${vNum}</span>
+            <div class="flex-1 space-y-1.5">
+              <div class="flex items-baseline gap-2">
+                <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[11px] font-bold shrink-0">${meta1.short || t1}</span>
+                <span>${text1}</span>
+                ${hasNote ? `<i class="fa-solid fa-bookmark text-amber-500 text-xs ml-1" title="已加書籤筆記"></i>` : ""}
+              </div>
+              <div class="flex items-baseline gap-2 pt-1 border-t theme-surface opacity-90">
+                <span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500 text-[11px] font-bold shrink-0">${meta2.short || t2}</span>
+                <span>${text2}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // 渲染可調比例的雙框並行顯示（橫向左右 / 直向上下）
+    function renderSplitParallelView(container, chapNum) {
+      const isHorizontal = appState.parallelDirection === "horizontal";
+      const t1 = appState.primaryTransId;
+      const t2 = appState.secondaryTransId;
+      const meta1 = bibleStore.translations[t1] || bibleStore.catalog.find(c => c.id === t1) || { name: t1, short: t1 };
+      const meta2 = bibleStore.translations[t2] || bibleStore.catalog.find(c => c.id === t2) || { name: t2, short: t2 };
+
+      const verses1 = getChapterVerses(appState.bookId, chapNum, t1);
+      const verses2 = getChapterVerses(appState.bookId, chapNum, t2);
+
+      const wrapper = document.createElement("div");
+      wrapper.id = "splitWorkspace";
+      wrapper.className = `split-workspace ${isHorizontal ? "split-horizontal" : "split-vertical"} shadow-xs`;
+
+      // 第一譯本框 (Pane 1)
+      const pane1 = document.createElement("div");
+      pane1.id = "parallelPane1";
+      pane1.className = "split-pane flex flex-col";
+      pane1.style.flexBasis = `${appState.splitRatio}%`;
+
+      const header1 = document.createElement("div");
+      header1.className = "sticky top-0 z-10 px-3.5 py-2 theme-secondary border-b flex items-center justify-between text-xs font-bold";
+      header1.innerHTML = `
+        <span class="flex items-center gap-1.5 text-blue-600">
+          <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+          <span>${meta1.name}</span>
+        </span>
+        <span class="theme-muted">${verses1 ? verses1.length + " 節" : "未載入"}</span>
+      `;
+      const body1 = document.createElement("div");
+      body1.className = "p-2.5 sm:p-3.5 space-y-1 flex-1";
+      if (!verses1 || verses1.length === 0) {
+        body1.innerHTML = buildMissingTranslationNoticeHTML(t1);
+      } else {
+        verses1.forEach((vObj, idx) => {
+          const el = createSinglePaneVerseElement(vObj, idx, t1, "pane1");
+          el.id = `verse-row-${vObj.verse}`;
+          body1.appendChild(el);
+        });
+      }
+      pane1.appendChild(header1);
+      pane1.appendChild(body1);
+
+      // 中間可拖曳比例分隔拉桿 (Splitter Resizer)
+      const resizer = document.createElement("div");
+      resizer.id = "splitResizer";
+      resizer.className = "split-resizer";
+      resizer.title = "拖曳以調整兩個譯本框的比例";
+      resizer.innerHTML = `<div class="resizer-pill"></div>`;
+
+      // 第二譯本框 (Pane 2)
+      const pane2 = document.createElement("div");
+      pane2.id = "parallelPane2";
+      pane2.className = "split-pane flex flex-col";
+      pane2.style.flexBasis = `${100 - appState.splitRatio}%`;
+
+      const header2 = document.createElement("div");
+      header2.className = "sticky top-0 z-10 px-3.5 py-2 theme-secondary border-b flex items-center justify-between text-xs font-bold";
+      header2.innerHTML = `
+        <span class="flex items-center gap-1.5 text-indigo-500">
+          <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+          <span>${meta2.name}</span>
+        </span>
+        <span class="theme-muted">${verses2 ? verses2.length + " 節" : "未載入"}</span>
+      `;
+      const body2 = document.createElement("div");
+      body2.className = "p-2.5 sm:p-3.5 space-y-1 flex-1";
+      if (!verses2 || verses2.length === 0) {
+        body2.innerHTML = buildMissingTranslationNoticeHTML(t2);
+      } else {
+        verses2.forEach((vObj, idx) => {
+          const el = createSinglePaneVerseElement(vObj, idx, t2, "pane2");
+          body2.appendChild(el);
+        });
+      }
+      pane2.appendChild(header2);
+      pane2.appendChild(body2);
+
+      wrapper.appendChild(pane1);
+      wrapper.appendChild(resizer);
+      wrapper.appendChild(pane2);
+      container.appendChild(wrapper);
+
+      attachSplitResizerEvents(wrapper, pane1, pane2, resizer);
+      attachParallelSyncScroll(pane1, pane2);
+    }
+
+    // 滑鼠與手機觸控拖曳調整雙框比例
+    function attachSplitResizerEvents(wrapper, pane1, pane2, resizer) {
+      let isDragging = false;
+
+      const onMove = clientPos => {
+        if (!isDragging) return;
+        const rect = wrapper.getBoundingClientRect();
+        const isHorizontal = appState.parallelDirection === "horizontal";
+        let percentage = 50;
+        if (isHorizontal) {
+          const offsetX = clientPos.clientX - rect.left;
+          percentage = (offsetX / rect.width) * 100;
+        } else {
+          const offsetY = clientPos.clientY - rect.top;
+          percentage = (offsetY / rect.height) * 100;
+        }
+        const clamped = Math.min(80, Math.max(20, Math.round(percentage)));
+        setSplitRatio(clamped, false);
+      };
+
+      const stopDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        resizer.classList.remove("dragging");
+        document.body.style.userSelect = "";
+      };
+
+      resizer.addEventListener("mousedown", e => {
+        e.preventDefault();
+        isDragging = true;
+        resizer.classList.add("dragging");
+        document.body.style.userSelect = "none";
+      });
+
+      window.addEventListener("mousemove", e => {
+        if (isDragging) onMove(e);
+      });
+      window.addEventListener("mouseup", stopDrag);
+
+      resizer.addEventListener("touchstart", () => {
+        isDragging = true;
+        resizer.classList.add("dragging");
+      }, { passive: true });
+
+      window.addEventListener("touchmove", e => {
+        if (isDragging && e.touches[0]) {
+          onMove(e.touches[0]);
+        }
+      }, { passive: true });
+      window.addEventListener("touchend", stopDrag);
+    }
+
+    // 雙框百分比同步捲動
+    function attachParallelSyncScroll(pane1, pane2) {
+      let activeScroller = null;
+      let timer = null;
+
+      const syncPane = (source, target) => {
+        if (!appState.syncScroll) return;
+        if (activeScroller && activeScroller !== source) return;
+        activeScroller = source;
+
+        const maxSource = source.scrollHeight - source.clientHeight;
+        const maxTarget = target.scrollHeight - target.clientHeight;
+        if (maxSource > 0 && maxTarget > 0) {
+          const ratio = source.scrollTop / maxSource;
+          target.scrollTop = ratio * maxTarget;
+        }
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { activeScroller = null; }, 60);
+      };
+
+      pane1.addEventListener("scroll", () => syncPane(pane1, pane2), { passive: true });
+      pane2.addEventListener("scroll", () => syncPane(pane2, pane1), { passive: true });
+    }
+
+    function scrollToVerseInView(verseNum) {
+      const target1 = document.getElementById(`verse-row-${verseNum}`);
+      const target2 = document.getElementById(`pane2-verse-row-${verseNum}`);
+      if (target1) {
+        target1.scrollIntoView({ behavior: "smooth", block: "center" });
+        target1.classList.add("flash-target");
+        setTimeout(() => target1.classList.remove("flash-target"), 2000);
+      }
+      if (target2) {
+        target2.scrollIntoView({ behavior: "smooth", block: "center" });
+        target2.classList.add("flash-target");
+        setTimeout(() => target2.classList.remove("flash-target"), 2000);
+      }
+    }
+
+    /********************************************************************
+     * 5B. 雙譯本並行顯示控制與譯本管理視窗邏輯
+     ********************************************************************/
+    function toggleParallelMode() {
+      appState.parallelMode = !appState.parallelMode;
+      const toolbar = document.getElementById("parallelControlToolbar");
+      const btn = document.getElementById("parallelToggleBtn");
+      const speechTargetSel = document.getElementById("speechTransTargetSelect");
+
+      if (appState.parallelMode) {
+        toolbar.classList.remove("hidden");
+        btn.className = "p-2 sm:px-3 sm:py-1.5 rounded-xl bg-blue-600 text-white border border-blue-600 transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold shadow-xs";
+        speechTargetSel.classList.remove("hidden");
+        populateTranslationSelectors();
+        const secMeta = bibleStore.catalog.find(c => c.id === appState.secondaryTransId);
+        if (secMeta && !bibleStore.translations[appState.secondaryTransId]) {
+          fetchTranslationFromSameFolder(secMeta, true).then(ok => {
+            if (ok) renderCurrentChapter();
+          });
+        }
+      } else {
+        toolbar.classList.add("hidden");
+        btn.className = "p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold";
+        speechTargetSel.classList.add("hidden");
+      }
+
+      renderCurrentChapter(appState.selectedVerseNum);
+    }
+
+    function setParallelDirection(dir) {
+      appState.parallelDirection = dir;
+      const btnH = document.getElementById("layoutBtnHorizontal");
+      const btnV = document.getElementById("layoutBtnVertical");
+      const btnI = document.getElementById("layoutBtnInterlinear");
+      const ratioBar = document.getElementById("splitRatioControlBar");
+
+      const activeClass = "px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition flex items-center gap-1";
+      const normalClass = "px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1";
+
+      btnH.className = dir === "horizontal" ? activeClass : normalClass;
+      btnV.className = dir === "vertical" ? activeClass : normalClass;
+      btnI.className = dir === "interlinear" ? activeClass : normalClass;
+
+      if (dir === "interlinear") {
+        ratioBar.classList.add("hidden");
+      } else {
+        ratioBar.classList.remove("hidden");
+      }
+
+      renderCurrentChapter(appState.selectedVerseNum);
+    }
+
+    function setSplitRatio(val, reRender = false) {
+      const r = Math.min(80, Math.max(20, Number(val)));
+      appState.splitRatio = r;
+
+      const slider = document.getElementById("splitRatioSlider");
+      const label = document.getElementById("splitRatioText");
+      if (slider) slider.value = r;
+      if (label) label.textContent = `${r}% : ${100 - r}%`;
+
+      const pane1 = document.getElementById("parallelPane1");
+      const pane2 = document.getElementById("parallelPane2");
+      if (pane1 && pane2 && !reRender) {
+        pane1.style.flexBasis = `${r}%`;
+        pane2.style.flexBasis = `${100 - r}%`;
+      } else if (reRender) {
+        renderCurrentChapter();
+      }
+    }
+
+    function toggleSyncScroll(checked) {
+      appState.syncScroll = Boolean(checked);
+    }
+
+    function populateTranslationSelectors() {
+      const sel1 = document.getElementById("primaryTransSelect");
+      const sel2 = document.getElementById("secondaryTransSelect");
+      if (!sel1 || !sel2) return;
+
+      const renderOptions = selectedId => {
+        return bibleStore.catalog.map(item => {
+          const loadedObj = bibleStore.translations[item.id];
+          const statusTag = loadedObj?.isOfflineCached
+            ? " [離線已存]"
+            : loadedObj?.isFullLoaded
+              ? " [已載入]"
+              : " (同目錄讀取)";
+          const selected = item.id === selectedId ? "selected" : "";
+          return `<option value="${item.id}" ${selected}>${item.name}${statusTag}</option>`;
+        }).join("");
+      };
+
+      sel1.innerHTML = renderOptions(appState.primaryTransId);
+      sel2.innerHTML = renderOptions(appState.secondaryTransId);
+    }
+
+    async function onChangePrimaryTranslation(newTransId) {
+      appState.primaryTransId = newTransId;
+      if (!bibleStore.translations[newTransId]) {
+        const cat = bibleStore.catalog.find(c => c.id === newTransId);
+        if (cat) await fetchTranslationFromSameFolder(cat, false);
+      }
+      const primaryObj = bibleStore.translations[newTransId];
+      if (primaryObj) {
+        bibleStore.translationName = primaryObj.name;
+        bibleStore.isFullLoaded = primaryObj.isFullLoaded;
+        bibleStore.booksMap = primaryObj.booksMap;
+      }
+      populateTranslationSelectors();
+      renderCurrentChapter();
+    }
+
+    async function onChangeSecondaryTranslation(newTransId) {
+      appState.secondaryTransId = newTransId;
+      if (!bibleStore.translations[newTransId]) {
+        const cat = bibleStore.catalog.find(c => c.id === newTransId);
+        if (cat) await fetchTranslationFromSameFolder(cat, false);
+      }
+      populateTranslationSelectors();
+      renderCurrentChapter();
+    }
+
+    function swapParallelTranslations() {
+      const temp = appState.primaryTransId;
+      appState.primaryTransId = appState.secondaryTransId;
+      appState.secondaryTransId = temp;
+      onChangePrimaryTranslation(appState.primaryTransId);
+    }
+
+    function openTranslationsModal() {
+      renderTranslationsCatalogModal();
+      document.getElementById("translationsModal").classList.remove("hidden");
+    }
+
+    function closeTranslationsModal() {
+      document.getElementById("translationsModal").classList.add("hidden");
+    }
+
+    function renderTranslationsCatalogModal() {
+      const listEl = document.getElementById("translationsCatalogList");
+      const summaryEl = document.getElementById("offlineStorageSummary");
+      if (!listEl) return;
+
+      const offlineCount = Object.values(bibleStore.translations).filter(t => t.isOfflineCached).length;
+      if (summaryEl) {
+        summaryEl.textContent = `已離線快取 ${offlineCount} 部譯本`;
+      }
+
+      listEl.innerHTML = "";
+      bibleStore.catalog.forEach(item => {
+        const loaded = bibleStore.translations[item.id];
+        const isPrimary = appState.primaryTransId === item.id;
+        const isSecondary = appState.parallelMode && appState.secondaryTransId === item.id;
+
+        const card = document.createElement("div");
+        card.className = "p-3.5 rounded-2xl theme-secondary border flex flex-wrap items-center justify-between gap-2.5";
+
+        let statusBadge = `<span class="px-2 py-0.5 rounded-md bg-gray-500/10 theme-muted text-[11px] font-semibold">同目錄：./${item.fileName}</span>`;
+        if (loaded && loaded.isOfflineCached) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 text-[11px] font-bold"><i class="fa-solid fa-check mr-1"></i>已儲存離線 (${loaded.bookCount}卷)</span>`;
+        } else if (loaded && loaded.isFullLoaded) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-600 text-[11px] font-bold">已載入 (${loaded.bookCount}卷)</span>`;
+        }
+
+        card.innerHTML = `
+          <div class="space-y-1 min-w-[200px]">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-bold text-sm">${item.name}</span>
+              <code class="text-[11px] px-1.5 py-0.5 rounded theme-surface border">${item.fileName}</code>
+              ${statusBadge}
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] theme-muted">
+              ${isPrimary ? `<span class="text-blue-500 font-bold">● 目前主譯本</span>` : ""}
+              ${isSecondary ? `<span class="text-indigo-500 font-bold">● 目前並行譯本 2</span>` : ""}
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button onclick="fetchAndCacheById('${item.id}')" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center gap-1">
+              <i class="fa-solid fa-cloud-arrow-down"></i>
+              <span>${loaded?.isOfflineCached ? "重新同步" : "載入並存離線"}</span>
+            </button>
+
+            <button onclick="setAsPrimaryFromModal('${item.id}')" class="px-2.5 py-1.5 rounded-xl theme-surface border hover:border-blue-500 text-xs font-semibold transition">
+              設為主譯本
+            </button>
+
+            <button onclick="setAsParallelFromModal('${item.id}')" class="px-2.5 py-1.5 rounded-xl theme-surface border hover:border-indigo-500 text-xs font-semibold transition">
+              並行對照
+            </button>
+
+            ${loaded?.rawJson ? `
+              <button onclick="downloadTranslationJsonFile('${item.id}')" title="下載此譯本 JSON 檔案至本機裝置" class="px-2.5 py-1.5 rounded-xl theme-surface border hover:border-emerald-500 text-xs font-semibold text-emerald-600 transition">
+                <i class="fa-solid fa-download"></i>
+              </button>
+            ` : ""}
+
+            ${loaded?.isOfflineCached ? `
+              <button onclick="clearOfflineCacheById('${item.id}')" title="清除此譯本的離線快取" class="px-2.5 py-1.5 rounded-xl theme-surface border hover:border-red-500 text-xs text-red-500 transition">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            ` : ""}
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    async function fetchAndCacheById(transId) {
+      const cat = bibleStore.catalog.find(c => c.id === transId);
+      if (!cat) return;
+      const ok = await fetchTranslationFromSameFolder(cat, false);
+      if (ok) {
+        renderCurrentChapter();
+        renderTranslationsCatalogModal();
+      }
+    }
+
+    async function setAsPrimaryFromModal(transId) {
+      await onChangePrimaryTranslation(transId);
+      renderTranslationsCatalogModal();
+      showToast(`已切換主譯本為：${bibleStore.translations[transId]?.name || transId}`);
+    }
+
+    async function setAsParallelFromModal(transId) {
+      appState.secondaryTransId = transId;
+      if (!appState.parallelMode) {
+        toggleParallelMode();
+      } else {
+        await onChangeSecondaryTranslation(transId);
+      }
+      closeTranslationsModal();
+      showToast("已開啟雙譯本並行對照！");
+    }
+
+    function downloadTranslationJsonFile(transId) {
+      const transObj = bibleStore.translations[transId];
+      if (!transObj || !transObj.rawJson) {
+        showToast("尚未載入該譯本的完整 JSON 資料");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(transObj.rawJson)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = transObj.fileName || `${transId}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`正在下載 ${a.download}`);
+    }
+
+    async function clearOfflineCacheById(transId) {
+      await removeTranslationFromOfflineDB(transId);
+      if (bibleStore.translations[transId]) {
+        bibleStore.translations[transId].isOfflineCached = false;
+      }
+      updateDataSourceUI();
+      populateTranslationSelectors();
+      renderTranslationsCatalogModal();
+      showToast("已清除該譯本的離線快取");
+    }
+
+    async function addCustomSameFolderTranslation() {
+      const fileInput = document.getElementById("customTransFilenameInput");
+      const labelInput = document.getElementById("customTransLabelInput");
+      let fileName = fileInput.value.trim();
+      const customLabel = labelInput.value.trim();
+
+      if (!fileName) {
+        showToast("請輸入同資料夾下的 .json 檔案名稱");
+        return;
+      }
+      if (!fileName.toLowerCase().endsWith(".json")) {
+        fileName += ".json";
+      }
+
+      const id = fileName.replace(/\.json$/i, "");
+      let cat = bibleStore.catalog.find(c => c.fileName.toLowerCase() === fileName.toLowerCase());
+      if (!cat) {
+        cat = {
+          id,
+          fileName,
+          name: customLabel || id,
+          short: (customLabel || id).slice(0, 6),
+          lang: /^[a-z0-9_-]+$/i.test(customLabel || id) ? "en" : "zh"
+        };
+        bibleStore.catalog.push(cat);
+      }
+
+      fileInput.value = "";
+      labelInput.value = "";
+      populateTranslationSelectors();
+      renderTranslationsCatalogModal();
+      await fetchAndCacheById(cat.id);
+    }
+
+    /********************************************************************
+     * 6. 章節導航與快速選書卷 Modal
+     ********************************************************************/
+    function prevChapter() {
+      stopSpeech();
+      if (appState.chapter > 1) {
+        appState.chapter--;
+      } else {
+        const idx = BIBLE_BOOKS.findIndex(b => b.id === appState.bookId);
+        if (idx > 0) {
+          const prevBook = BIBLE_BOOKS[idx - 1];
+          appState.bookId = prevBook.id;
+          appState.chapter = prevBook.chapters;
+        } else {
+          showToast("已經是創世記第一章");
+          return;
+        }
+      }
+      renderCurrentChapter();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function nextChapter() {
+      stopSpeech();
+      const bookMeta = getBookMeta(appState.bookId);
+      if (appState.chapter < bookMeta.chapters) {
+        appState.chapter++;
+      } else {
+        const idx = BIBLE_BOOKS.findIndex(b => b.id === appState.bookId);
+        if (idx < BIBLE_BOOKS.length - 1) {
+          const nextBook = BIBLE_BOOKS[idx + 1];
+          appState.bookId = nextBook.id;
+          appState.chapter = 1;
+        } else {
+          showToast("已經是啟示錄最後一章");
+          return;
+        }
+      }
+      renderCurrentChapter();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function openBookModal() {
+      appState.modalSelectedBookId = appState.bookId;
+      renderBooksGrid();
+      renderChaptersGrid(appState.modalSelectedBookId);
+      renderVersesQuickGrid(appState.modalSelectedBookId, appState.chapter);
+      document.getElementById("bookSelectModal").classList.remove("hidden");
+    }
+
+    function closeBookModal() {
+      document.getElementById("bookSelectModal").classList.add("hidden");
+    }
+
+    function setBookFilter(filter) {
+      appState.bookFilter = filter;
+      ["OT", "NT", "ALL"].forEach(k => {
+        const btn = document.getElementById(`filterBtn${k}`);
+        if (btn) {
+          btn.className = k === filter
+            ? "px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white"
+            : "px-2.5 py-1 rounded-lg font-semibold";
+        }
+      });
+      renderBooksGrid();
+    }
+
+    function toggleBookNameDisplay() {
+      appState.showShortBookName = !appState.showShortBookName;
+      renderBooksGrid();
+    }
+
+    function renderBooksGrid() {
+      const grid = document.getElementById("booksGridContainer");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      const list = BIBLE_BOOKS.filter(b => appState.bookFilter === "ALL" || b.testament === appState.bookFilter);
+      list.forEach(book => {
+        const isSelected = book.id === appState.modalSelectedBookId;
+        const btn = document.createElement("button");
+        btn.className = `p-2 rounded-xl border text-xs sm:text-sm font-semibold transition truncate ${
+          isSelected ? "bg-blue-600 text-white border-blue-600" : "theme-secondary hover:border-blue-500"
+        }`;
+        btn.textContent = appState.showShortBookName ? book.short : book.name;
+        btn.title = book.name;
+        btn.onclick = () => {
+          appState.modalSelectedBookId = book.id;
+          renderBooksGrid();
+          renderChaptersGrid(book.id);
+          renderVersesQuickGrid(book.id, 1);
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderChaptersGrid(bookId) {
+      const bookMeta = getBookMeta(bookId);
+      document.getElementById("modalSelectedBookTitle").textContent = `2. 選擇章數（${bookMeta.name} 共 ${bookMeta.chapters} 章）`;
+      const grid = document.getElementById("chaptersGridContainer");
+      grid.innerHTML = "";
+
+      for (let c = 1; c <= bookMeta.chapters; c++) {
+        const isCurrent = bookId === appState.bookId && c === appState.chapter;
+        const btn = document.createElement("button");
+        btn.className = `py-2 rounded-xl border text-xs font-bold transition ${
+          isCurrent ? "bg-blue-600 text-white border-blue-600" : "theme-secondary hover:border-blue-500"
+        }`;
+        btn.textContent = c;
+        btn.onclick = () => {
+          appState.bookId = bookId;
+          appState.chapter = c;
+          renderCurrentChapter();
+          renderVersesQuickGrid(bookId, c);
+          closeBookModal();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+        grid.appendChild(btn);
+      }
+    }
+
+    function renderVersesQuickGrid(bookId, chapterNum) {
+      const grid = document.getElementById("versesGridContainer");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      const verses = getChapterVerses(bookId, chapterNum, appState.primaryTransId);
+      const count = verses ? verses.length : 30;
+
+      for (let v = 1; v <= count; v++) {
+        const btn = document.createElement("button");
+        btn.className = "py-1.5 rounded-lg theme-secondary border text-xs hover:border-blue-500 transition";
+        btn.textContent = v;
+        btn.onclick = () => {
+          appState.bookId = bookId;
+          appState.chapter = chapterNum;
+          closeBookModal();
+          renderCurrentChapter(v);
+        };
+        grid.appendChild(btn);
+      }
+    }
+
+    /********************************************************************
+     * 7. 全本關鍵字搜尋 (自動忽略分詞空格)
+     ********************************************************************/
+    function openSearchModal() {
+      document.getElementById("searchModal").classList.remove("hidden");
+      setTimeout(() => document.getElementById("searchKeywordInput").focus(), 60);
+    }
+
+    function closeSearchModal() {
+      document.getElementById("searchModal").classList.add("hidden");
+    }
+
+    function executeBibleSearch() {
+      const rawQuery = document.getElementById("searchKeywordInput").value.trim();
+      const scope = document.getElementById("searchScopeSelect").value;
+      const resultsBox = document.getElementById("searchResultsContainer");
+      const summaryEl = document.getElementById("searchSummaryText");
+
+      if (!rawQuery) {
+        showToast("請輸入要搜尋的經文關鍵字");
+        return;
+      }
+
+      const normalizedQuery = rawQuery.replace(/\s+/g, "").toLowerCase();
+      const matches = [];
+      const maxResults = 200;
+
+      const booksToSearch = BIBLE_BOOKS.filter(b => {
+        if (scope === "OT") return b.testament === "OT";
+        if (scope === "NT") return b.testament === "NT";
+        if (scope === "CURRENT_BOOK") return b.id === appState.bookId;
+        return true;
+      });
+
+      const activeMap = bibleStore.translations[appState.primaryTransId]?.booksMap || bibleStore.booksMap;
+
+      for (const book of booksToSearch) {
+        const chapMap = activeMap[book.id];
+        if (!chapMap) continue;
+        for (const chapNum of Object.keys(chapMap)) {
+          const verses = chapMap[chapNum];
+          for (const vObj of verses) {
+            if (isMergedVersePlaceholder(vObj.text)) continue;
+            const formatted = formatVerseText(vObj.text, appState.primaryTransId);
+            const compactVerse = formatted.replace(/\s+/g, "").toLowerCase();
+            if (compactVerse.includes(normalizedQuery)) {
+              matches.push({
+                bookId: book.id,
+                bookName: book.name,
+                chapter: Number(chapNum),
+                verse: vObj.verse,
+                text: formatted
+              });
+              if (matches.length >= maxResults) break;
+            }
+          }
+          if (matches.length >= maxResults) break;
+        }
+        if (matches.length >= maxResults) break;
+      }
+
+      summaryEl.textContent = `找到 ${matches.length}${matches.length >= maxResults ? "+" : ""} 處符合「${rawQuery}」的經節`;
+      resultsBox.innerHTML = "";
+
+      if (matches.length === 0) {
+        resultsBox.innerHTML = `<div class="text-center py-10 theme-muted text-xs">找不到包含「${rawQuery}」的經文</div>`;
+        return;
+      }
+
+      matches.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "p-3 rounded-2xl theme-secondary border hover:border-blue-500 cursor-pointer transition space-y-1";
+        const highlighted = item.text.replace(new RegExp(rawQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), m => `<mark class="bg-yellow-300 text-gray-900 px-0.5 rounded">${m}</mark>`);
+        div.innerHTML = `
+          <div class="text-xs font-bold text-blue-500">${item.bookName} ${item.chapter}:${item.verse}</div>
+          <div class="text-sm leading-relaxed">${highlighted}</div>
+        `;
+        div.onclick = () => {
+          appState.bookId = item.bookId;
+          appState.chapter = item.chapter;
+          closeSearchModal();
+          renderCurrentChapter(item.verse);
+        };
+        resultsBox.appendChild(div);
+      });
+    }
+
+    /********************************************************************
+     * 8. 外觀主題、字體大小與空白排版設定
+     ********************************************************************/
+    function setTheme(themeName) {
+      appState.theme = themeName;
+      document.body.classList.remove("theme-white", "theme-sepia", "theme-black");
+      document.body.classList.add(`theme-${themeName}`);
+    }
+
+    function changeFontSize(delta) {
+      appState.fontSize = Math.min(34, Math.max(14, appState.fontSize + delta));
+      const container = document.getElementById("versesContainer");
+      if (container) container.style.fontSize = `${appState.fontSize}px`;
+      const label = document.getElementById("fontSizeValueText");
+      if (label) label.textContent = `${appState.fontSize}px`;
+    }
+
+    function setFontStyle(style) {
+      appState.fontStyle = style;
+      const btnSans = document.getElementById("fontSansBtn");
+      const btnSerif = document.getElementById("fontSerifBtn");
+      if (btnSans && btnSerif) {
+        btnSans.className = style === "sans"
+          ? "flex-1 py-2 rounded-xl bg-blue-600 text-white font-semibold text-xs"
+          : "flex-1 py-2 rounded-xl theme-secondary border font-semibold text-xs";
+        btnSerif.className = style === "serif"
+          ? "flex-1 py-2 rounded-xl bg-blue-600 text-white font-serif-bible font-semibold text-xs"
+          : "flex-1 py-2 rounded-xl theme-secondary border font-serif-bible font-semibold text-xs";
+      }
+      renderCurrentChapter();
+    }
+
+    function toggleCompactSpacing() {
+      appState.compactSpacing = !appState.compactSpacing;
+      const label = document.getElementById("spacingToggleLabel");
+      const settingsBtn = document.getElementById("settingsSpacingBtn");
+      if (label) label.textContent = appState.compactSpacing ? "緊湊" : "原空格";
+      if (settingsBtn) {
+        settingsBtn.textContent = appState.compactSpacing ? "開啟中" : "已關閉";
+        settingsBtn.className = appState.compactSpacing
+          ? "px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold shrink-0"
+          : "px-3 py-1.5 rounded-xl theme-surface border text-xs font-semibold shrink-0";
+      }
+      renderCurrentChapter();
+      showToast(appState.compactSpacing ? "已切換為緊湊中文排版" : "已保留 ChiUn.json 原檔分詞空格");
+    }
+
+    function openSettingsModal() {
+      document.getElementById("settingsModal").classList.remove("hidden");
+    }
+
+    function closeSettingsModal() {
+      document.getElementById("settingsModal").classList.add("hidden");
+    }
+
+    /********************************************************************
+     * 9. 語音朗讀系統 (Web Speech API - 廣東話 / 普通話 / 英語)
+     ********************************************************************/
+    function setSpeechTranslationTarget(target) {
+      appState.speech.target = target;
+      const transId = target === "secondary" ? appState.secondaryTransId : appState.primaryTransId;
+      const transObj = bibleStore.translations[transId];
+      if (transObj && transObj.lang === "en") {
+        setSpeechLang("en-US");
+      } else if (appState.speech.lang === "en-US") {
+        setSpeechLang("zh-HK");
+      }
+    }
+
+    function setSpeechLang(langCode) {
+      appState.speech.lang = langCode;
+      const btnHK = document.getElementById("langBtnHK");
+      const btnTW = document.getElementById("langBtnTW");
+      const btnEN = document.getElementById("langBtnEN");
+
+      const activeCls = "px-2 py-1 rounded-lg font-semibold bg-blue-600 text-white transition";
+      const normalCls = "px-2 py-1 rounded-lg font-semibold transition";
+
+      if (btnHK) btnHK.className = langCode === "zh-HK" ? activeCls : normalCls;
+      if (btnTW) btnTW.className = langCode === "zh-TW" ? activeCls : normalCls;
+      if (btnEN) btnEN.className = langCode === "en-US" ? activeCls : normalCls;
+
+      const labelMap = { "zh-HK": "廣東話", "zh-TW": "普通話", "en-US": "English" };
+      showToast(`語音朗讀已切換為：${labelMap[langCode] || langCode}`);
+
+      if (appState.speech.speaking) {
+        const idx = appState.speech.currentVerseIndex;
+        stopSpeech();
+        startSpeechFromIndex(idx);
+      }
+    }
+
+    function updateSpeechRate(val) {
+      appState.speech.rate = parseFloat(val) || 1.0;
+      if (appState.speech.speaking) {
+        const idx = appState.speech.currentVerseIndex;
+        stopSpeech();
+        startSpeechFromIndex(idx);
+      }
+    }
+
+    function toggleSpeech() {
+      if (!("speechSynthesis" in window)) {
+        showToast("此瀏覽器不支援語音朗讀功能");
+        return;
+      }
+      if (appState.speech.speaking) {
+        stopSpeech();
+      } else {
+        startSpeechFromIndex(0);
+      }
+    }
+
+    function startSpeechFromIndex(startIndex) {
+      const targetTransId = (appState.parallelMode && appState.speech.target === "secondary")
+        ? appState.secondaryTransId
+        : appState.primaryTransId;
+
+      const verses = getChapterVerses(appState.bookId, appState.chapter, targetTransId);
+      if (!verses || verses.length === 0) {
+        showToast("此譯本章節無可朗讀之經文");
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      appState.speech.versesQueue = verses;
+      appState.speech.activeTransId = targetTransId;
+      appState.speech.currentVerseIndex = Math.max(0, Math.min(startIndex, verses.length - 1));
+      appState.speech.speaking = true;
+
+      updateSpeechUI(true);
+      speakCurrentQueueVerse();
+    }
+
+    function speakCurrentQueueVerse() {
+      if (!appState.speech.speaking) return;
+      const queue = appState.speech.versesQueue;
+      const idx = appState.speech.currentVerseIndex;
+      const activeTransId = appState.speech.activeTransId || appState.primaryTransId;
+
+      if (idx >= queue.length) {
+        stopSpeech();
+        showToast("本章朗讀完畢");
+        return;
+      }
+
+      const vObj = queue[idx];
+      if (isMergedVersePlaceholder(vObj.text)) {
+        appState.speech.currentVerseIndex++;
+        speakCurrentQueueVerse();
+        return;
+      }
+
+      document.querySelectorAll(".verse-row.speaking-active").forEach(el => el.classList.remove("speaking-active"));
+      document.querySelectorAll(`.verse-num-${vObj.verse}`).forEach(el => {
+        el.classList.add("speaking-active");
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+      const bookMeta = getBookMeta(appState.bookId);
+      const transObj = bibleStore.translations[activeTransId];
+      document.getElementById("speakingStatusText").textContent = `正在讀：${bookMeta.short} ${appState.chapter}:${vObj.verse}`;
+
+      const formatted = formatVerseText(vObj.text, activeTransId);
+      const cleanSpeakText = (transObj && transObj.lang === "en") ? formatted : formatted.replace(/\s+/g, "");
+      const utter = new SpeechSynthesisUtterance(cleanSpeakText);
+      utter.lang = appState.speech.lang;
+      utter.rate = appState.speech.rate;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const targetLang = appState.speech.lang.toLowerCase();
+        const matchedVoice = voices.find(v => v.lang && v.lang.toLowerCase().replace("_", "-").includes(targetLang))
+          || (targetLang === "zh-hk" ? voices.find(v => v.lang && v.lang.toLowerCase().includes("yue")) : null);
+        if (matchedVoice) utter.voice = matchedVoice;
+      }
+
+      utter.onend = () => {
+        if (!appState.speech.speaking) return;
+        appState.speech.currentVerseIndex++;
+        speakCurrentQueueVerse();
+      };
+
+      utter.onerror = () => {
+        stopSpeech();
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    function stopSpeech() {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      appState.speech.speaking = false;
+      document.querySelectorAll(".verse-row.speaking-active").forEach(el => el.classList.remove("speaking-active"));
+      updateSpeechUI(false);
+    }
+
+    function updateSpeechUI(isSpeaking) {
+      const icon = document.getElementById("playSpeechIcon");
+      const text = document.getElementById("playSpeechText");
+      const stopBtn = document.getElementById("stopSpeechBtn");
+      const statusText = document.getElementById("speakingStatusText");
+
+      if (isSpeaking) {
+        icon.className = "fa-solid fa-pause text-xs";
+        text.textContent = "暫停";
+        stopBtn.classList.remove("hidden");
+      } else {
+        icon.className = "fa-solid fa-play text-xs";
+        text.textContent = "朗讀本章";
+        stopBtn.classList.add("hidden");
+        statusText.textContent = "點擊經節可單節點選或從該節起讀";
+      }
+    }
+
+    /********************************************************************
+     * 10. 單節點選互動：螢光筆、書籤筆記、複製、金句圖卡
+     ********************************************************************/
+    function onVerseRowClick(verseNum, verseText, transId = appState.primaryTransId) {
+      appState.selectedVerseNum = verseNum;
+      appState.selectedVerseText = verseText;
+
+      document.querySelectorAll(".verse-row.selected-verse").forEach(el => el.classList.remove("selected-verse"));
+      document.querySelectorAll(`.verse-num-${verseNum}`).forEach(el => el.classList.add("selected-verse"));
+
+      const bookMeta = getBookMeta(appState.bookId);
+      const transShort = bibleStore.translations[transId]?.short || transId;
+      document.getElementById("selectedVerseRef").textContent = `${bookMeta.name} ${appState.chapter}:${verseNum} (${transShort})`;
+      document.getElementById("verseActionDrawer").classList.remove("hidden");
+    }
+
+    function closeVerseActionDrawer() {
+      appState.selectedVerseNum = null;
+      document.querySelectorAll(".verse-row.selected-verse").forEach(el => el.classList.remove("selected-verse"));
+      document.getElementById("verseActionDrawer").classList.add("hidden");
+    }
+
+    function applyHighlight(colorClass) {
+      if (!appState.selectedVerseNum) return;
+      const key = `${appState.bookId}_${appState.chapter}_${appState.selectedVerseNum}`;
+      if (colorClass) {
+        appState.highlights[key] = colorClass;
+      } else {
+        delete appState.highlights[key];
+      }
+      renderCurrentChapter();
+    }
+
+    function speakFromSelectedVerse() {
+      if (!appState.selectedVerseNum) return;
+      const verses = getChapterVerses(appState.bookId, appState.chapter, appState.primaryTransId) || [];
+      const idx = verses.findIndex(v => v.verse === appState.selectedVerseNum);
+      closeVerseActionDrawer();
+      startSpeechFromIndex(idx >= 0 ? idx : 0);
+    }
+
+    function copySelectedVerse() {
+      if (!appState.selectedVerseNum) return;
+      const bookMeta = getBookMeta(appState.bookId);
+      const copyStr = `「${appState.selectedVerseText}」（${bookMeta.name} ${appState.chapter}:${appState.selectedVerseNum}）`;
+      const tempInput = document.createElement("textarea");
+      tempInput.value = copyStr;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempInput);
+      showToast("已複製經文至剪貼簿！");
+    }
+
+    function openNoteEditorForSelected() {
+      if (!appState.selectedVerseNum) return;
+      const bookMeta = getBookMeta(appState.bookId);
+      const key = `${appState.bookId}_${appState.chapter}_${appState.selectedVerseNum}`;
+      const existing = appState.notes[key];
+
+      document.getElementById("noteEditorRefTitle").textContent = `${bookMeta.name} ${appState.chapter}:${appState.selectedVerseNum} — ${appState.selectedVerseText}`;
+      document.getElementById("noteEditorTextarea").value = existing ? existing.note : "";
+      document.getElementById("noteEditorBox").classList.remove("hidden");
+      openBookmarksModal();
+    }
+
+    function cancelNoteEditor() {
+      document.getElementById("noteEditorBox").classList.add("hidden");
+    }
+
+    function saveNoteFromEditor() {
+      const vNum = appState.selectedVerseNum || 1;
+      const key = `${appState.bookId}_${appState.chapter}_${vNum}`;
+      const noteText = document.getElementById("noteEditorTextarea").value.trim();
+
+      appState.notes[key] = {
+        bookId: appState.bookId,
+        chapter: appState.chapter,
+        verse: vNum,
+        text: appState.selectedVerseText,
+        note: noteText || "（書籤標記）",
+        createdAt: new Date().toLocaleDateString("zh-HK")
+      };
+
+      document.getElementById("noteEditorBox").classList.add("hidden");
+      updateBookmarkBadge();
+      renderBookmarksList();
+      renderCurrentChapter();
+      showToast("已儲存書籤與靈修筆記");
+    }
+
+    function updateBookmarkBadge() {
+      const count = Object.keys(appState.notes).length;
+      const badge = document.getElementById("bookmarkCountBadge");
+      if (count > 0) {
+        badge.textContent = count;
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+
+    function openBookmarksModal() {
+      renderBookmarksList();
+      document.getElementById("bookmarksModal").classList.remove("hidden");
+    }
+
+    function closeBookmarksModal() {
+      document.getElementById("bookmarksModal").classList.add("hidden");
+    }
+
+    function renderBookmarksList() {
+      const box = document.getElementById("bookmarksListContainer");
+      const keys = Object.keys(appState.notes);
+      box.innerHTML = "";
+
+      if (keys.length === 0) {
+        box.innerHTML = `<div class="text-center py-10 theme-muted text-xs">尚未加入任何書籤或靈修筆記（點選任一節經文即可新增）</div>`;
+        return;
+      }
+
+      keys.forEach(key => {
+        const item = appState.notes[key];
+        const bookMeta = getBookMeta(item.bookId);
+        const card = document.createElement("div");
+        card.className = "p-3.5 rounded-2xl theme-secondary border space-y-1.5";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <button onclick="jumpToBookmark('${item.bookId}', ${item.chapter}, ${item.verse})" class="font-bold text-xs text-blue-500 hover:underline">
+              ${bookMeta.name} ${item.chapter}:${item.verse}
+            </button>
+            <button onclick="deleteBookmark('${key}')" class="text-xs text-red-500 hover:underline">刪除</button>
+          </div>
+          <div class="text-xs theme-muted">${item.text}</div>
+          <div class="text-sm font-medium pt-1 border-t theme-surface">${item.note}</div>
+        `;
+        box.appendChild(card);
+      });
+    }
+
+    function jumpToBookmark(bookId, chapter, verse) {
+      appState.bookId = bookId;
+      appState.chapter = chapter;
+      closeBookmarksModal();
+      renderCurrentChapter(verse);
+    }
+
+    function deleteBookmark(key) {
+      delete appState.notes[key];
+      updateBookmarkBadge();
+      renderBookmarksList();
+      renderCurrentChapter();
+    }
+
+    /********************************************************************
+     * 11. 經文金句圖片卡產生器 (Canvas)
+     ********************************************************************/
+    function generateVerseCard() {
+      if (!appState.selectedVerseNum) return;
+      const canvas = document.getElementById("verseCardCanvas");
+      const ctx = canvas.getContext("2d");
+      const bookMeta = getBookMeta(appState.bookId);
+
+      const grad = ctx.createLinearGradient(0, 0, 800, 800);
+      grad.addColorStop(0, "#1e3a8a");
+      grad.addColorStop(1, "#0f172a");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 800, 800);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(48, 48, 704, 704);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 34px 'Noto Serif TC', serif";
+      const text = `「${appState.selectedVerseText}」`;
+      const maxWidth = 620;
+      const lineHeight = 56;
+      let x = 90;
+      let y = 260;
+
+      let line = "";
+      for (let i = 0; i < text.length; i++) {
+        const testLine = line + text[i];
+        if (ctx.measureText(testLine).width > maxWidth && i > 0) {
+          ctx.fillText(line, x, y);
+          line = text[i];
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y);
+
+      ctx.fillStyle = "#93c5fd";
+      ctx.font = "bold 26px 'Inter', sans-serif";
+      ctx.fillText(`— ${bookMeta.name} ${appState.chapter}:${appState.selectedVerseNum}`, 90, y + 80);
+
+      document.getElementById("verseCardModal").classList.remove("hidden");
+    }
+
+    function closeVerseCardModal() {
+      document.getElementById("verseCardModal").classList.add("hidden");
+    }
+
+    function downloadVerseCardImage() {
+      const canvas = document.getElementById("verseCardCanvas");
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Bible_${appState.bookId}_${appState.chapter}_${appState.selectedVerseNum}.png`;
+      a.click();
+    }
+
+    /********************************************************************
+     * 12. 拖放檔案、快捷鍵與啟動初始化
+     ********************************************************************/
+    function showToast(msg) {
+      const el = document.getElementById("toastMessage");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => el.classList.add("hidden"), 2800);
+    }
+
+    window.addEventListener("dragover", e => {
+      e.preventDefault();
+      document.getElementById("dragDropOverlay").classList.remove("hidden");
+    });
+
+    window.addEventListener("dragleave", e => {
+      if (e.relatedTarget === null) {
+        document.getElementById("dragDropOverlay").classList.add("hidden");
+      }
+    });
+
+    window.addEventListener("drop", e => {
+      e.preventDefault();
+      document.getElementById("dragDropOverlay").classList.add("hidden");
+      const files = Array.from(e.dataTransfer?.files || []).filter(f => f.name.toLowerCase().endsWith(".json"));
+      if (files.length > 0) {
+        readAndLoadMultipleJsonFiles(files);
+      }
+    });
+
+    window.addEventListener("keydown", e => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+      if (e.key === "ArrowLeft") prevChapter();
+      if (e.key === "ArrowRight") nextChapter();
+    });
+
+    // 啟動初始化：載入預載結構 -> 讀取 IndexedDB 已存離線譯本 -> 自動掃描同資料夾各譯本 JSON
+    window.addEventListener("DOMContentLoaded", async () => {
+      parseChiUnJsonData(PRELOADED_CHIUN_SAMPLE, false);
+      setTheme("white");
+      populateTranslationSelectors();
+      renderCurrentChapter();
+
+      const cachedList = await loadAllTranslationsFromOfflineDB();
+      if (cachedList && cachedList.length > 0) {
+        cachedList.forEach(entry => {
+          if (entry && entry.data) {
+            if (!bibleStore.catalog.some(c => c.id === entry.id)) {
+              bibleStore.catalog.push({
+                id: entry.id,
+                fileName: entry.fileName || `${entry.id}.json`,
+                name: entry.name || entry.id,
+                short: entry.short || entry.id,
+                lang: entry.lang || "zh"
+              });
+            }
+            registerTranslationData(entry.id, entry.data, {
+              isFullFile: true,
+              isOfflineCached: true,
+              fileName: entry.fileName
+            });
+          }
+        });
+        renderCurrentChapter();
+      }
+
+      await scanSameFolderTranslations(false);
+      renderCurrentChapter();
+    });
+  </script>
+</body>
+</html>
