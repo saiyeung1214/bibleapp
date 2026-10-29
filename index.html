@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="聖經隨身寶" />
-  <title>聖經隨身寶 — 多譯本並行與離線研讀版</title>
+  <meta name="apple-mobile-web-app-title" content="聖經隨身寶 - 明恩堂" />
+  <title>聖經隨身寶 - 明恩堂</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome 圖示 -->
@@ -225,9 +225,10 @@
       
       <!-- 左側：品牌與快速選書卷章節按鈕 -->
       <div class="flex items-center gap-2 min-w-0">
-        <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+        <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0" title="聖經隨身寶 - 明恩堂">
           <i class="fa-solid fa-book-bible text-sm"></i>
         </div>
+        <span class="hidden lg:inline font-bold text-sm text-blue-600 shrink-0">聖經隨身寶 - 明恩堂</span>
         <button onclick="openBookModal()" class="px-3 py-1.5 rounded-xl theme-secondary border hover:border-blue-500 transition flex items-center gap-2 min-w-0">
           <span id="headerBookChapter" class="font-bold text-sm sm:text-base truncate">創世記 1章</span>
           <i class="fa-solid fa-chevron-down text-xs opacity-70"></i>
@@ -244,6 +245,13 @@
 
       <!-- 右側功能按鈕群 -->
       <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <!-- 靈修(可以聽) / 教會消息 模組按鈕 -->
+        <button onclick="openDevotionalModal()" title="每日靈修(可聆聽)與教會消息" class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20 transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
+          <i class="fa-solid fa-bullhorn text-amber-500"></i>
+          <span class="hidden sm:inline">靈修/消息</span>
+          <span id="devotionalCountBadge" class="px-1.5 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-bold">2</span>
+        </button>
+
         <!-- 譯本管理與離線下載按鈕 -->
         <button onclick="openTranslationsModal()" title="譯本管理與離線下載" class="p-2 sm:px-3 sm:py-1.5 rounded-xl theme-secondary border hover:opacity-80 transition flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
           <i class="fa-solid fa-language text-blue-500"></i>
@@ -817,6 +825,118 @@
     </div>
   </div>
 
+  <!-- ==================== 彈出視窗 4B：靈修(可以聽) / 教會消息 與 Admin 管理模組 ==================== -->
+  <div id="devotionalModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeDevotionalModal()">
+    <div class="w-full max-w-3xl max-h-[88vh] rounded-3xl theme-card border shadow-2xl flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <!-- 頂部標題與分類切換 -->
+      <div class="p-4 border-b theme-surface flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="font-bold text-lg flex items-center gap-2">
+            <i class="fa-solid fa-dove text-amber-500"></i>
+            <span>靈修與教會消息</span>
+          </h2>
+          <div class="inline-flex rounded-xl p-0.5 theme-secondary border text-xs">
+            <button id="devoTabBtnAll" onclick="setDevotionalTab('ALL')" class="px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition">全部</button>
+            <button id="devoTabBtnDevo" onclick="setDevotionalTab('devotional')" class="px-2.5 py-1 rounded-lg font-semibold transition">靈修分享 (可聽)</button>
+            <button id="devoTabBtnNews" onclick="setDevotionalTab('news')" class="px-2.5 py-1 rounded-lg font-semibold transition">教會消息</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <!-- 語音語言快速顯示 -->
+          <button onclick="cycleDevotionalSpeechLang()" id="devoSpeechLangBtn" title="切換靈修/消息朗讀語言" class="px-2.5 py-1 rounded-xl theme-secondary border text-xs font-semibold flex items-center gap-1 hover:border-blue-500 transition">
+            <i class="fa-solid fa-headphones text-blue-500"></i>
+            <span id="devoSpeechLangLabel">廣東話朗讀</span>
+          </button>
+
+          <!-- Admin 登入 / 管理按鈕 -->
+          <button onclick="toggleAdminAuthPanel()" id="adminStatusBtn" class="px-3 py-1 rounded-xl theme-secondary border text-xs font-semibold flex items-center gap-1 hover:border-amber-500 transition">
+            <i class="fa-solid fa-lock text-amber-500" id="adminLockIcon"></i>
+            <span id="adminStatusText">Admin</span>
+          </button>
+
+          <button onclick="closeDevotionalModal()" class="w-8 h-8 rounded-full theme-secondary flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin 密碼驗證列 (預設隱藏，密碼欄位 type="password" 不顯示明文) -->
+      <div id="adminLoginBar" class="hidden px-4 py-3 border-b theme-secondary flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-user-shield text-amber-500 text-sm"></i>
+          <span class="font-bold">管理員驗證：</span>
+          <input id="adminPasswordInput" type="password" autocomplete="off" placeholder="請輸入管理員密碼"
+                 onkeydown="if(event.key==='Enter') verifyAdminLogin()"
+                 class="px-3 py-1.5 rounded-xl theme-surface border text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="verifyAdminLogin()" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold transition">
+            登入管理
+          </button>
+          <button onclick="document.getElementById('adminLoginBar').classList.add('hidden')" class="px-2.5 py-1.5 rounded-xl theme-surface border font-semibold">
+            取消
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin 發佈管理面板 (僅登入後顯示) -->
+      <div id="adminPublishPanel" class="hidden p-4 border-b theme-secondary space-y-3 text-xs sm:text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="font-bold text-amber-600 flex items-center gap-1.5">
+            <i class="fa-solid fa-pen-nib"></i>
+            <span>管理員發佈中心（可發放及刪去靈修及教會消息）</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <button onclick="exportDevotionalsJson()" title="匯出 devotionals.json 放在與 index.html 同資料夾即可供所有會友自動讀取" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-1 transition">
+              <i class="fa-solid fa-file-export"></i> 匯出 devotionals.json
+            </button>
+            <button onclick="logoutAdmin()" class="px-2.5 py-1 rounded-xl theme-surface border text-red-500 font-semibold hover:border-red-500 transition">
+              登出 Admin
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+          <div class="sm:col-span-3">
+            <select id="newPostTypeSelect" class="w-full px-3 py-2 rounded-xl theme-surface border font-semibold text-xs sm:text-sm">
+              <option value="devotional">靈修分享 (可聽)</option>
+              <option value="news">教會消息</option>
+            </select>
+          </div>
+          <div class="sm:col-span-5">
+            <input id="newPostTitleInput" type="text" placeholder="標題（例如：今日靈修：在主裡得安息 / 主日崇拜報告）"
+                   class="w-full px-3 py-2 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div class="sm:col-span-4">
+            <input id="newPostScriptureInput" type="text" placeholder="相關經文（選填，如：詩篇 23:1-3）"
+                   class="w-full px-3 py-2 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <textarea id="newPostContentInput" rows="3" placeholder="輸入靈修內容或教會消息內文（支援語音朗讀全文）..."
+                  class="w-full p-3 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <input id="newPostAudioUrlInput" type="text" placeholder="選填：外部錄音檔網址或同目錄 MP3 (如 ./audio/devo1.mp3)，留空則使用內建語音朗讀"
+                 class="flex-1 min-w-[220px] px-3 py-1.5 rounded-xl theme-surface border text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button onclick="publishDevotionalOrNews()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 shrink-0 shadow-xs transition">
+            <i class="fa-solid fa-paper-plane"></i> 發放張貼
+          </button>
+        </div>
+      </div>
+
+      <!-- 靈修與教會消息列表 -->
+      <div id="devotionalListContainer" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm"></div>
+
+      <!-- 底部版權與狀態列 -->
+      <div class="px-4 py-2.5 border-t theme-surface flex flex-wrap items-center justify-between gap-2 text-xs theme-muted">
+        <span><i class="fa-solid fa-volume-high text-blue-500 mr-1"></i>點擊「聆聽」即可語音播放靈修或消息內容（支援手機背景播放）</span>
+        <span>浸信宣道會明恩堂</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== 彈出視窗 5：金句圖片卡產生器 ==================== -->
   <div id="verseCardModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-xs flex items-center justify-center p-3" onclick="closeVerseCardModal()">
     <div class="w-full max-w-md rounded-3xl theme-card border shadow-2xl p-4 space-y-4" onclick="event.stopPropagation()">
@@ -995,8 +1115,9 @@
 
     // IndexedDB 離線資料庫封裝 (讓用戶下載一次譯本後可永久離線使用)
     const IDB_NAME = "BiblePocketOfflineDB";
-    const IDB_VERSION = 1;
+    const IDB_VERSION = 2;
     const IDB_STORE = "translations";
+    const IDB_DEVO_STORE = "devotionals";
 
     function openOfflineDB() {
       return new Promise(resolve => {
@@ -1009,6 +1130,9 @@
           const db = e.target.result;
           if (!db.objectStoreNames.contains(IDB_STORE)) {
             db.createObjectStore(IDB_STORE, { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains(IDB_DEVO_STORE)) {
+            db.createObjectStore(IDB_DEVO_STORE, { keyPath: "id" });
           }
         };
         req.onsuccess = () => resolve(req.result);
@@ -2821,7 +2945,7 @@
 
       ctx.fillStyle = "rgba(255,255,255,0.45)";
       ctx.font = "18px 'Inter', sans-serif";
-      ctx.fillText("浸信宣道會明恩堂 · 聖經隨身寶", 90, 720);
+      ctx.fillText("聖經隨身寶 - 明恩堂 · 浸信宣道會明恩堂", 90, 720);
 
       document.getElementById("verseCardModal").classList.remove("hidden");
     }
@@ -2837,6 +2961,447 @@
       a.href = url;
       a.download = `Bible_${appState.bookId}_${appState.chapter}_${appState.selectedVerseNum}.png`;
       a.click();
+    }
+
+    /********************************************************************
+     * 11B. 靈修(可以聽) / 教會消息 與 Admin 管理模組
+     ********************************************************************/
+    const DEFAULT_DEVOTIONAL_ITEMS = [
+      {
+        id: "devo_default_1",
+        type: "devotional",
+        title: "每日靈修：耶和華是我的牧者",
+        scripture: "詩篇 23:1-3",
+        content: "「耶和華是我的牧者，我必不致缺乏。他使我躺臥在青草地上，領我在可安歇的水邊。他使我的靈魂甦醒，為自己的名引導我走義路。」\n\n在忙碌的生活中，願我們每天來到主前安靜等候，讓主的話語餵養我們的心靈，得著從上頭而來的平安與力量。",
+        date: "2026-10-29",
+        author: "浸信宣道會明恩堂",
+        audioUrl: ""
+      },
+      {
+        id: "news_default_1",
+        type: "news",
+        title: "教會消息：歡迎使用明恩堂「聖經隨身寶」",
+        scripture: "",
+        content: "歡迎弟兄姊妹使用「聖經隨身寶」研讀聖經、聆聽每日靈修及查閱最新教會消息。\n如有任何查詢或代禱需要，歡迎電郵聯絡：saiyeung@gmail.com。",
+        date: "2026-10-29",
+        author: "浸信宣道會明恩堂",
+        audioUrl: ""
+      }
+    ];
+
+    const devotionalState = {
+      items: [...DEFAULT_DEVOTIONAL_ITEMS],
+      activeTab: "ALL",       // 'ALL' | 'devotional' | 'news'
+      isAdmin: false,
+      playingId: null,
+      audioPlayer: null
+    };
+
+    // 驗證管理員密碼（不在前端介面顯示明文）
+    function verifyAdminPasscode(inputStr) {
+      const s = String(inputStr || "").trim();
+      try {
+        return btoa(s) === "OTAxOTE0NjE=";
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function saveDevotionalsToOfflineDB(items) {
+      try {
+        const db = await openOfflineDB();
+        if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) return false;
+        return new Promise(resolve => {
+          const tx = db.transaction(IDB_DEVO_STORE, "readwrite");
+          const store = tx.objectStore(IDB_DEVO_STORE);
+          store.put({ id: "devo_list_v1", items: items, updatedAt: new Date().toISOString() });
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function loadDevotionalsFromOfflineDB() {
+      try {
+        const db = await openOfflineDB();
+        if (!db || !db.objectStoreNames.contains(IDB_DEVO_STORE)) return null;
+        return new Promise(resolve => {
+          const tx = db.transaction(IDB_DEVO_STORE, "readonly");
+          const store = tx.objectStore(IDB_DEVO_STORE);
+          const req = store.get("devo_list_v1");
+          req.onsuccess = () => resolve(req.result?.items || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function initDevotionalModule() {
+      // 1. 先讀取本機 IndexedDB 保存的靈修與教會消息
+      const cached = await loadDevotionalsFromOfflineDB();
+      if (Array.isArray(cached)) {
+        devotionalState.items = cached;
+      }
+      // 2. 嘗試讀取同資料夾下的 devotionals.json (若管理員有放置於同資料夾)
+      try {
+        const res = await fetch("./devotionals.json", { cache: "no-cache" });
+        if (res.ok) {
+          const remoteItems = await res.json();
+          if (Array.isArray(remoteItems) && remoteItems.length > 0) {
+            devotionalState.items = remoteItems;
+            await saveDevotionalsToOfflineDB(remoteItems);
+          }
+        }
+      } catch (e) {}
+
+      updateDevotionalBadge();
+      updateDevoSpeechLangButton();
+    }
+
+    function updateDevotionalBadge() {
+      const badge = document.getElementById("devotionalCountBadge");
+      if (!badge) return;
+      const count = devotionalState.items.length;
+      badge.textContent = count;
+      badge.classList.toggle("hidden", count === 0);
+    }
+
+    function openDevotionalModal() {
+      updateDevoSpeechLangButton();
+      renderDevotionalList();
+      document.getElementById("devotionalModal").classList.remove("hidden");
+    }
+
+    function closeDevotionalModal() {
+      document.getElementById("devotionalModal").classList.add("hidden");
+    }
+
+    function setDevotionalTab(tab) {
+      devotionalState.activeTab = tab;
+      const btnAll = document.getElementById("devoTabBtnAll");
+      const btnDevo = document.getElementById("devoTabBtnDevo");
+      const btnNews = document.getElementById("devoTabBtnNews");
+
+      const activeCls = "px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition";
+      const normalCls = "px-2.5 py-1 rounded-lg font-semibold transition";
+
+      if (btnAll) btnAll.className = tab === "ALL" ? activeCls : normalCls;
+      if (btnDevo) btnDevo.className = tab === "devotional" ? activeCls : normalCls;
+      if (btnNews) btnNews.className = tab === "news" ? activeCls : normalCls;
+
+      renderDevotionalList();
+    }
+
+    function toggleAdminAuthPanel() {
+      if (devotionalState.isAdmin) {
+        const publishPanel = document.getElementById("adminPublishPanel");
+        publishPanel.classList.toggle("hidden");
+        return;
+      }
+      const loginBar = document.getElementById("adminLoginBar");
+      loginBar.classList.toggle("hidden");
+      if (!loginBar.classList.contains("hidden")) {
+        const input = document.getElementById("adminPasswordInput");
+        input.value = "";
+        setTimeout(() => input.focus(), 50);
+      }
+    }
+
+    function verifyAdminLogin() {
+      const input = document.getElementById("adminPasswordInput");
+      const val = input.value;
+      input.value = "";
+
+      if (verifyAdminPasscode(val)) {
+        devotionalState.isAdmin = true;
+        document.getElementById("adminLoginBar").classList.add("hidden");
+        document.getElementById("adminPublishPanel").classList.remove("hidden");
+        updateAdminUIState();
+        renderDevotionalList();
+        showToast("已成功登入管理員模式，可發放及刪去靈修與教會消息");
+      } else {
+        showToast("管理員密碼不正確");
+      }
+    }
+
+    function logoutAdmin() {
+      devotionalState.isAdmin = false;
+      document.getElementById("adminPublishPanel").classList.add("hidden");
+      document.getElementById("adminLoginBar").classList.add("hidden");
+      updateAdminUIState();
+      renderDevotionalList();
+      showToast("已登出管理員模式");
+    }
+
+    function updateAdminUIState() {
+      const btn = document.getElementById("adminStatusBtn");
+      const icon = document.getElementById("adminLockIcon");
+      const text = document.getElementById("adminStatusText");
+      if (!btn || !icon || !text) return;
+
+      if (devotionalState.isAdmin) {
+        btn.className = "px-3 py-1 rounded-xl bg-amber-500 text-white border border-amber-600 text-xs font-semibold flex items-center gap-1 transition";
+        icon.className = "fa-solid fa-unlock-keyhole";
+        text.textContent = "管理中";
+      } else {
+        btn.className = "px-3 py-1 rounded-xl theme-secondary border text-xs font-semibold flex items-center gap-1 hover:border-amber-500 transition";
+        icon.className = "fa-solid fa-lock text-amber-500";
+        text.textContent = "Admin";
+      }
+    }
+
+    async function publishDevotionalOrNews() {
+      if (!devotionalState.isAdmin) {
+        showToast("請先登入管理員");
+        return;
+      }
+      const type = document.getElementById("newPostTypeSelect").value;
+      const title = document.getElementById("newPostTitleInput").value.trim();
+      const scripture = document.getElementById("newPostScriptureInput").value.trim();
+      const content = document.getElementById("newPostContentInput").value.trim();
+      const audioUrl = document.getElementById("newPostAudioUrlInput").value.trim();
+
+      if (!title || !content) {
+        showToast("請填寫標題與內容");
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const newItem = {
+        id: "post_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        type,
+        title,
+        scripture,
+        content,
+        audioUrl,
+        date: today,
+        author: "浸信宣道會明恩堂"
+      };
+
+      devotionalState.items.unshift(newItem);
+      await saveDevotionalsToOfflineDB(devotionalState.items);
+
+      document.getElementById("newPostTitleInput").value = "";
+      document.getElementById("newPostScriptureInput").value = "";
+      document.getElementById("newPostContentInput").value = "";
+      document.getElementById("newPostAudioUrlInput").value = "";
+
+      updateDevotionalBadge();
+      renderDevotionalList();
+      showToast(`已成功發放${type === "devotional" ? "靈修分享" : "教會消息"}！`);
+    }
+
+    async function deleteDevotionalItem(itemId) {
+      if (!devotionalState.isAdmin) {
+        showToast("僅管理員可刪去項目");
+        return;
+      }
+      if (devotionalState.playingId === itemId) {
+        stopDevotionalSpeech();
+      }
+      devotionalState.items = devotionalState.items.filter(item => item.id !== itemId);
+      await saveDevotionalsToOfflineDB(devotionalState.items);
+      updateDevotionalBadge();
+      renderDevotionalList();
+      showToast("已刪去該則項目");
+    }
+
+    function exportDevotionalsJson() {
+      const blob = new Blob([JSON.stringify(devotionalState.items, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "devotionals.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("已匯出 devotionals.json（可放入與 index.html 同資料夾供所有用家自動載入）");
+    }
+
+    function cycleDevotionalSpeechLang() {
+      const order = ["zh-HK", "zh-TW", "en-US"];
+      const idx = order.indexOf(appState.speech.lang);
+      const next = order[(idx + 1) % order.length];
+      setSpeechLang(next);
+      updateDevoSpeechLangButton();
+    }
+
+    function updateDevoSpeechLangButton() {
+      const label = document.getElementById("devoSpeechLangLabel");
+      if (!label) return;
+      const map = { "zh-HK": "廣東話朗讀", "zh-TW": "普通話朗讀", "en-US": "英語朗讀" };
+      label.textContent = map[appState.speech.lang] || "廣東話朗讀";
+    }
+
+    function togglePlayDevotionalItem(itemId) {
+      if (devotionalState.playingId === itemId) {
+        stopDevotionalSpeech();
+        return;
+      }
+
+      const item = devotionalState.items.find(i => i.id === itemId);
+      if (!item) return;
+
+      stopSpeech();
+      stopDevotionalSpeech();
+
+      devotionalState.playingId = itemId;
+      renderDevotionalList();
+
+      // 啟動手機背景保活音訊與防休眠常亮
+      if (appState.speech.bgKeepAlive) {
+        const audio = initSilentKeepAliveAudio();
+        if (audio) audio.play().catch(() => {});
+        acquireScreenWakeLock();
+      }
+
+      // 若管理員有設定外部 MP3 音訊網址，優先播放真實音訊
+      if (item.audioUrl) {
+        const player = new Audio(item.audioUrl);
+        devotionalState.audioPlayer = player;
+        updateMobileLockScreenMetadata(
+          item.title,
+          1,
+          1,
+          item.content,
+          item.type === "devotional" ? "每日靈修" : "教會消息"
+        );
+        player.onended = () => stopDevotionalSpeech();
+        player.onerror = () => {
+          showToast("音訊檔無法載入，自動改用語音合成朗讀");
+          speakDevotionalByTTS(item);
+        };
+        player.play().catch(() => speakDevotionalByTTS(item));
+        return;
+      }
+
+      speakDevotionalByTTS(item);
+    }
+
+    function speakDevotionalByTTS(item) {
+      if (!("speechSynthesis" in window)) {
+        showToast("此裝置不支援語音合成朗讀");
+        stopDevotionalSpeech();
+        return;
+      }
+      window.speechSynthesis.cancel();
+
+      const fullReadText = `${item.title}。${item.scripture ? "經文：" + item.scripture + "。" : ""}${item.content}`;
+      const utter = new SpeechSynthesisUtterance(fullReadText);
+      utter.lang = appState.speech.lang;
+      utter.rate = appState.speech.rate;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const targetLang = appState.speech.lang.toLowerCase();
+        const matchedVoice = voices.find(v => v.lang && v.lang.toLowerCase().replace("_", "-").includes(targetLang))
+          || (targetLang === "zh-hk" ? voices.find(v => v.lang && v.lang.toLowerCase().includes("yue")) : null);
+        if (matchedVoice) utter.voice = matchedVoice;
+      }
+
+      updateMobileLockScreenMetadata(
+        item.title,
+        1,
+        1,
+        item.content,
+        item.type === "devotional" ? "每日靈修" : "教會消息"
+      );
+
+      utter.onend = () => {
+        stopDevotionalSpeech();
+      };
+      utter.onerror = () => {
+        stopDevotionalSpeech();
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    function stopDevotionalSpeech() {
+      if (devotionalState.audioPlayer) {
+        devotionalState.audioPlayer.pause();
+        devotionalState.audioPlayer = null;
+      }
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (silentKeepAliveAudio && !appState.speech.speaking) {
+        silentKeepAliveAudio.pause();
+      }
+      if (!appState.speech.speaking) {
+        releaseScreenWakeLock();
+      }
+      devotionalState.playingId = null;
+      renderDevotionalList();
+    }
+
+    function escapeHtmlStr(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderDevotionalList() {
+      const container = document.getElementById("devotionalListContainer");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const filtered = devotionalState.items.filter(item => {
+        if (devotionalState.activeTab === "ALL") return true;
+        return item.type === devotionalState.activeTab;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 theme-muted text-xs">目前尚無此類別的靈修或教會消息</div>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const isPlaying = devotionalState.playingId === item.id;
+        const isDevo = item.type === "devotional";
+        const badgeHtml = isDevo
+          ? `<span class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 text-[11px] font-bold"><i class="fa-solid fa-book-open-reader mr-1"></i>靈修分享</span>`
+          : `<span class="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-600 text-[11px] font-bold"><i class="fa-solid fa-bullhorn mr-1"></i>教會消息</span>`;
+
+        const card = document.createElement("div");
+        card.className = `p-4 rounded-2xl theme-secondary border space-y-2.5 transition ${isPlaying ? "ring-2 ring-emerald-500" : ""}`;
+
+        card.innerHTML = `
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div class="space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                ${badgeHtml}
+                <span class="text-xs theme-muted">${escapeHtmlStr(item.date)}</span>
+                ${item.scripture ? `<span class="px-2 py-0.5 rounded-md theme-surface border text-xs font-semibold text-blue-500">${escapeHtmlStr(item.scripture)}</span>` : ""}
+              </div>
+              <h3 class="font-bold text-base sm:text-lg">${escapeHtmlStr(item.title)}</h3>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="togglePlayDevotionalItem('${item.id}')" class="px-3 py-1.5 rounded-xl ${
+                isPlaying ? "bg-emerald-600 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"
+              } text-xs font-semibold transition flex items-center gap-1.5 shadow-xs">
+                <i class="fa-solid ${isPlaying ? "fa-stop" : "fa-volume-high"}"></i>
+                <span>${isPlaying ? "停止聆聽" : "語音聆聽"}</span>
+              </button>
+
+              ${devotionalState.isAdmin ? `
+                <button onclick="deleteDevotionalItem('${item.id}')" title="刪去此則項目" class="px-2.5 py-1.5 rounded-xl bg-red-500/15 text-red-500 hover:bg-red-500/25 text-xs font-semibold transition flex items-center gap-1">
+                  <i class="fa-regular fa-trash-can"></i>
+                  <span>刪去</span>
+                </button>
+              ` : ""}
+            </div>
+          </div>
+
+          <div class="text-sm leading-relaxed whitespace-pre-line pt-1 border-t theme-surface">${escapeHtmlStr(item.content)}</div>
+        `;
+        container.appendChild(card);
+      });
     }
 
     /********************************************************************
@@ -2907,6 +3472,7 @@
       }
 
       await scanSameFolderTranslations(false);
+      await initDevotionalModule();
       renderCurrentChapter();
     });
   </script>
