@@ -91,7 +91,9 @@
     /* 經節互動與高亮樣式 */
     .verse-row {
       transition: background-color 0.15s ease, transform 0.1s ease;
-      line-height: 1.85;
+      line-height: var(--verse-line-height, 1.35);
+      padding-top: var(--verse-py, 2px);
+      padding-bottom: var(--verse-py, 2px);
     }
     .verse-row:hover {
       background-color: var(--verse-hover);
@@ -332,13 +334,13 @@
         <!-- 排列方式（橫向左右 / 直向上下 / 逐節穿插） -->
         <div class="flex flex-wrap items-center gap-1.5 text-xs">
           <div class="inline-flex rounded-xl p-0.5 theme-surface border">
-            <button id="layoutBtnHorizontal" onclick="setParallelDirection('horizontal')" class="px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition flex items-center gap-1">
-              <i class="fa-solid fa-table-columns"></i>
-              <span>左右橫排</span>
-            </button>
-            <button id="layoutBtnVertical" onclick="setParallelDirection('vertical')" class="px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1">
+            <button id="layoutBtnVertical" onclick="setParallelDirection('vertical')" class="px-2.5 py-1 rounded-lg font-semibold bg-blue-600 text-white transition flex items-center gap-1">
               <i class="fa-solid fa-bars"></i>
               <span>上下直排</span>
+            </button>
+            <button id="layoutBtnHorizontal" onclick="setParallelDirection('horizontal')" class="px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1">
+              <i class="fa-solid fa-table-columns"></i>
+              <span>左右橫排</span>
             </button>
             <button id="layoutBtnInterlinear" onclick="setParallelDirection('interlinear')" class="px-2.5 py-1 rounded-lg font-semibold transition flex items-center gap-1">
               <i class="fa-solid fa-layer-group"></i>
@@ -348,21 +350,35 @@
         </div>
       </div>
 
-      <!-- 框體比例滑桿與同步捲動控制 (於左右橫排或上下直排顯示) -->
+      <!-- 框體比例滑桿、行距調校與同步捲動控制 -->
       <div id="splitRatioControlBar" class="pt-2 border-t theme-surface flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="font-semibold theme-muted shrink-0">
-            <i class="fa-solid fa-arrows-left-right-to-line text-blue-500 mr-1"></i>框比例 (<span id="splitRatioText">50% : 50%</span>)：
+            <i class="fa-solid fa-arrows-up-down text-blue-500 mr-1"></i>框比例 (<span id="splitRatioText">50% : 50%</span>)：
           </span>
           <input id="splitRatioSlider" type="range" min="20" max="80" step="1" value="50"
                  oninput="setSplitRatio(this.value)"
-                 class="w-32 sm:w-44 accent-blue-600 cursor-pointer">
+                 class="w-28 sm:w-36 accent-blue-600 cursor-pointer">
           <div class="flex items-center gap-1">
             <button onclick="setSplitRatio(35)" class="px-2 py-0.5 rounded-md theme-surface border hover:border-blue-500 font-medium">35:65</button>
             <button onclick="setSplitRatio(50)" class="px-2 py-0.5 rounded-md theme-surface border hover:border-blue-500 font-medium">50:50</button>
             <button onclick="setSplitRatio(65)" class="px-2 py-0.5 rounded-md theme-surface border hover:border-blue-500 font-medium">65:35</button>
           </div>
-          <span class="text-[11px] theme-muted hidden md:inline">（亦可直接拖曳中間分隔線無段調校）</span>
+        </div>
+
+        <!-- 行距與節距調校控制 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-semibold theme-muted shrink-0">
+            <i class="fa-solid fa-text-height text-emerald-500 mr-1"></i>行距 (<span id="parallelLineHeightText">1.35</span>)：
+          </span>
+          <input id="parallelLineHeightSlider" type="range" min="1.10" max="2.00" step="0.05" value="1.35"
+                 oninput="setLineHeight(this.value)"
+                 class="w-24 sm:w-28 accent-emerald-600 cursor-pointer">
+          <div class="flex items-center gap-1">
+            <button onclick="setLineHeight(1.20)" class="px-1.5 py-0.5 rounded-md theme-surface border hover:border-emerald-500 font-medium">極密</button>
+            <button onclick="setLineHeight(1.35)" class="px-1.5 py-0.5 rounded-md theme-surface border hover:border-emerald-500 font-medium">緊湊</button>
+            <button onclick="setLineHeight(1.65)" class="px-1.5 py-0.5 rounded-md theme-surface border hover:border-emerald-500 font-medium">舒適</button>
+          </div>
         </div>
 
         <label class="inline-flex items-center gap-1.5 cursor-pointer select-none font-semibold">
@@ -396,7 +412,7 @@
     </div>
 
     <!-- 經文顯示主容器 (支援單譯本 / 左右橫排雙框 / 上下直排雙框 / 逐節穿插) -->
-    <div id="versesContainer" class="space-y-1 text-lg"></div>
+    <div id="versesContainer" class="space-y-0.5 text-lg"></div>
 
     <!-- 章節底部上下章切換按鈕 -->
     <div class="mt-8 pt-4 border-t theme-surface flex items-center justify-between gap-3">
@@ -623,6 +639,22 @@
             <button onclick="changeFontSize(2)" class="px-4 py-2 rounded-xl theme-secondary border font-bold">A+</button>
             <button onclick="setFontStyle('sans')" id="fontSansBtn" class="flex-1 py-2 rounded-xl bg-blue-600 text-white font-semibold text-xs">黑體 (無襯線)</button>
             <button onclick="setFontStyle('serif')" id="fontSerifBtn" class="flex-1 py-2 rounded-xl theme-secondary border font-serif-bible font-semibold text-xs">宋明體 (襯線)</button>
+          </div>
+        </div>
+
+        <!-- 行距與段落間距調整 -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-xs uppercase tracking-wider theme-muted">經文行距與密度調校</label>
+            <span id="settingsLineHeightValueText" class="text-xs font-bold text-emerald-600">1.35 (緊湊多行)</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <input id="settingsLineHeightSlider" type="range" min="1.10" max="2.00" step="0.05" value="1.35"
+                   oninput="setLineHeight(this.value)"
+                   class="flex-1 accent-emerald-600 cursor-pointer">
+            <button onclick="setLineHeight(1.20)" class="px-2.5 py-1.5 rounded-xl theme-secondary border text-xs font-semibold hover:border-emerald-500">極密</button>
+            <button onclick="setLineHeight(1.35)" class="px-2.5 py-1.5 rounded-xl theme-secondary border text-xs font-semibold hover:border-emerald-500">緊湊</button>
+            <button onclick="setLineHeight(1.65)" class="px-2.5 py-1.5 rounded-xl theme-secondary border text-xs font-semibold hover:border-emerald-500">標準</button>
           </div>
         </div>
 
@@ -911,11 +943,12 @@
       primaryTransId: "ChiUn",
       secondaryTransId: "KJV",
       parallelMode: false,             // 是否開啟雙譯本並行顯示
-      parallelDirection: "horizontal", // 'horizontal' (左右橫排) | 'vertical' (上下直排) | 'interlinear' (逐節對照)
+      parallelDirection: "vertical",   // 預設改為 'vertical' (上下直排) | 'horizontal' (左右橫排) | 'interlinear' (逐節對照)
       splitRatio: 50,                  // 第一個框佔比 (20 ~ 80 %)
       syncScroll: true,                // 雙框是否同步捲動
       theme: "white",                  // 'white' | 'sepia' | 'black'
       fontSize: 20,
+      lineHeight: 1.35,                // 預設緊湊行距 (1.10 ~ 2.00)，方便一次閱讀多行
       fontStyle: "sans",               // 'sans' | 'serif'
       compactSpacing: true,            // true: 自動移除分詞多餘空白 | false: 保留原檔空白
       showShortBookName: true,
@@ -1366,7 +1399,7 @@
       row.id = `${panePrefix}-verse-row-${vNum}`;
       row.dataset.verse = vNum;
       row.dataset.index = idx;
-      row.className = `verse-row verse-num-${vNum} px-3 py-2 rounded-xl cursor-pointer flex items-baseline gap-2.5 ${hlClass} ${appState.selectedVerseNum === vNum ? "selected-verse" : ""}`;
+      row.className = `verse-row verse-num-${vNum} px-2.5 rounded-lg cursor-pointer flex items-baseline gap-2 ${hlClass} ${appState.selectedVerseNum === vNum ? "selected-verse" : ""}`;
       row.onclick = () => onVerseRowClick(vNum, formattedText, transId);
 
       row.innerHTML = `
@@ -1390,6 +1423,7 @@
 
       const container = document.getElementById("versesContainer");
       container.style.fontSize = `${appState.fontSize}px`;
+      applyLineHeightVariables();
       container.classList.toggle("font-serif-bible", appState.fontStyle === "serif");
       container.innerHTML = "";
 
@@ -1448,20 +1482,20 @@
 
         const row = document.createElement("div");
         row.id = `verse-row-${vNum}`;
-        row.className = `verse-row verse-num-${vNum} p-3 rounded-2xl border theme-card mb-2.5 cursor-pointer space-y-1.5 ${hlClass} ${appState.selectedVerseNum === vNum ? "selected-verse" : ""}`;
+        row.className = `verse-row verse-num-${vNum} px-2.5 py-1.5 rounded-xl border theme-card mb-1 cursor-pointer space-y-0.5 ${hlClass} ${appState.selectedVerseNum === vNum ? "selected-verse" : ""}`;
         row.onclick = () => onVerseRowClick(vNum, text1, t1);
 
         row.innerHTML = `
-          <div class="flex items-baseline gap-2.5">
+          <div class="flex items-baseline gap-2">
             <span class="text-xs font-bold text-blue-500 select-none shrink-0 w-7 text-right">${vNum}</span>
-            <div class="flex-1 space-y-1.5">
-              <div class="flex items-baseline gap-2">
-                <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[11px] font-bold shrink-0">${meta1.short || t1}</span>
+            <div class="flex-1 space-y-0.5">
+              <div class="flex items-baseline gap-1.5">
+                <span class="px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 text-[10px] font-bold shrink-0">${meta1.short || t1}</span>
                 <span>${text1}</span>
                 ${hasNote ? `<i class="fa-solid fa-bookmark text-amber-500 text-xs ml-1" title="已加書籤筆記"></i>` : ""}
               </div>
-              <div class="flex items-baseline gap-2 pt-1 border-t theme-surface opacity-90">
-                <span class="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500 text-[11px] font-bold shrink-0">${meta2.short || t2}</span>
+              <div class="flex items-baseline gap-1.5 pt-0.5 border-t theme-surface opacity-90">
+                <span class="px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-500 text-[10px] font-bold shrink-0">${meta2.short || t2}</span>
                 <span>${text2}</span>
               </div>
             </div>
@@ -1493,7 +1527,7 @@
       pane1.style.flexBasis = `${appState.splitRatio}%`;
 
       const header1 = document.createElement("div");
-      header1.className = "sticky top-0 z-10 px-3.5 py-2 theme-secondary border-b flex items-center justify-between text-xs font-bold";
+      header1.className = "sticky top-0 z-10 px-3 py-1 theme-secondary border-b flex items-center justify-between text-xs font-bold";
       header1.innerHTML = `
         <span class="flex items-center gap-1.5 text-blue-600">
           <span class="w-2 h-2 rounded-full bg-blue-600"></span>
@@ -1502,7 +1536,7 @@
         <span class="theme-muted">${verses1 ? verses1.length + " 節" : "未載入"}</span>
       `;
       const body1 = document.createElement("div");
-      body1.className = "p-2.5 sm:p-3.5 space-y-1 flex-1";
+      body1.className = "px-2 py-1 space-y-0 flex-1";
       if (!verses1 || verses1.length === 0) {
         body1.innerHTML = buildMissingTranslationNoticeHTML(t1);
       } else {
@@ -1529,7 +1563,7 @@
       pane2.style.flexBasis = `${100 - appState.splitRatio}%`;
 
       const header2 = document.createElement("div");
-      header2.className = "sticky top-0 z-10 px-3.5 py-2 theme-secondary border-b flex items-center justify-between text-xs font-bold";
+      header2.className = "sticky top-0 z-10 px-3 py-1 theme-secondary border-b flex items-center justify-between text-xs font-bold";
       header2.innerHTML = `
         <span class="flex items-center gap-1.5 text-indigo-500">
           <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
@@ -1538,7 +1572,7 @@
         <span class="theme-muted">${verses2 ? verses2.length + " 節" : "未載入"}</span>
       `;
       const body2 = document.createElement("div");
-      body2.className = "p-2.5 sm:p-3.5 space-y-1 flex-1";
+      body2.className = "px-2 py-1 space-y-0 flex-1";
       if (!verses2 || verses2.length === 0) {
         body2.innerHTML = buildMissingTranslationNoticeHTML(t2);
       } else {
@@ -2192,6 +2226,31 @@
       if (container) container.style.fontSize = `${appState.fontSize}px`;
       const label = document.getElementById("fontSizeValueText");
       if (label) label.textContent = `${appState.fontSize}px`;
+    }
+
+    function applyLineHeightVariables() {
+      const lh = Number(appState.lineHeight) || 1.35;
+      // 根據行距動態微調每節上下 padding，讓極密模式能一次看最多行
+      const py = lh <= 1.25 ? "1px" : lh <= 1.45 ? "2px" : "5px";
+      document.documentElement.style.setProperty("--verse-line-height", String(lh));
+      document.documentElement.style.setProperty("--verse-py", py);
+    }
+
+    function setLineHeight(val) {
+      const lh = Math.min(2.0, Math.max(1.1, parseFloat(val) || 1.35));
+      appState.lineHeight = Number(lh.toFixed(2));
+      applyLineHeightVariables();
+
+      const pText = document.getElementById("parallelLineHeightText");
+      const pSlider = document.getElementById("parallelLineHeightSlider");
+      const sText = document.getElementById("settingsLineHeightValueText");
+      const sSlider = document.getElementById("settingsLineHeightSlider");
+
+      const desc = appState.lineHeight <= 1.25 ? "極密多行" : appState.lineHeight <= 1.45 ? "緊湊多行" : "標準舒適";
+      if (pText) pText.textContent = appState.lineHeight.toFixed(2);
+      if (pSlider) pSlider.value = appState.lineHeight;
+      if (sText) sText.textContent = `${appState.lineHeight.toFixed(2)} (${desc})`;
+      if (sSlider) sSlider.value = appState.lineHeight;
     }
 
     function setFontStyle(style) {
