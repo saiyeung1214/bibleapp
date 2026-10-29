@@ -412,6 +412,14 @@
         <i class="fa-solid fa-arrow-right text-blue-500"></i>
       </button>
     </div>
+
+    <!-- 版權資訊 -->
+    <div class="mt-6 pt-4 border-t theme-surface text-center text-xs theme-muted space-y-1">
+      <p class="font-medium">
+        版權所有 ： 浸信宣道會明恩堂 &nbsp;|&nbsp;
+        <a href="mailto:saiyeung@gmail.com" class="text-blue-500 hover:underline">saiyeung@gmail.com</a>
+      </p>
+    </div>
   </main>
 
   <!-- 底部固定語音朗讀與章節控制列 -->
@@ -645,6 +653,11 @@
             </button>
           </div>
         </div>
+
+        <!-- 版權聲明 -->
+        <div class="pt-3 border-t theme-surface text-center text-xs theme-muted">
+          版權所有 ： 浸信宣道會明恩堂 &nbsp;|&nbsp; <a href="mailto:saiyeung@gmail.com" class="text-blue-500 hover:underline">saiyeung@gmail.com</a>
+        </div>
       </div>
     </div>
   </div>
@@ -709,9 +722,9 @@
             如果你在 <code>index.html</code> 同一資料夾放入了其他名稱的 JSON 譯本（例如 <code>CUVMP.json</code>、<code>ASV.json</code>），請輸入檔名直接載入並儲存離線：
           </p>
           <div class="flex flex-wrap sm:flex-nowrap gap-2">
-            <input id="customTransFilenameInput" type="text" placeholder="同資料夾檔名，例如：KJV.json 或 ChiNCV.json"
+            <input id="customTransFilenameInput" type="text" placeholder="同資料夾檔名，例如：KJV.json 或 ASV.json"
                    class="flex-1 px-3 py-2 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input id="customTransLabelInput" type="text" placeholder="顯示名稱 (選填，如：新譯本)"
+            <input id="customTransLabelInput" type="text" placeholder="顯示名稱 (選填，如：標準本)"
                    class="w-full sm:w-44 px-3 py-2 rounded-xl theme-surface border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <button onclick="addCustomSameFolderTranslation()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition">
               載入並加入清單
@@ -875,15 +888,14 @@
      ********************************************************************/
     const DEFAULT_SAME_FOLDER_TRANSLATIONS = [
       { id: "ChiUn",  fileName: "ChiUn.json",  name: "和合本 (繁體)",     short: "和合本", lang: "zh" },
-      { id: "ChiNCV", fileName: "ChiNCV.json", name: "聖經新譯本 (繁體)", short: "新譯本", lang: "zh" },
-      { id: "ChiSB",  fileName: "ChiSB.json",  name: "思高本聖經",       short: "思高本", lang: "zh" },
       { id: "ChiLCC", fileName: "ChiLCC.json", name: "呂振中譯本",       short: "呂振中", lang: "zh" },
       { id: "CUVS",   fileName: "ChiUns.json", name: "和合本 (簡體)",     short: "和合簡", lang: "zh" },
       { id: "KJV",    fileName: "KJV.json",    name: "King James Version (KJV)", short: "KJV", lang: "en" },
       { id: "BBE",    fileName: "BBE.json",    name: "Bible in Basic English (BBE)", short: "BBE", lang: "en" },
-      { id: "WEB",    fileName: "WEB.json",    name: "World English Bible (WEB)", short: "WEB", lang: "en" },
       { id: "ASV",    fileName: "ASV.json",    name: "American Standard Version (ASV)", short: "ASV", lang: "en" }
     ];
+
+    const REMOVED_TRANSLATION_IDS = ["ChiNCV", "ChiSB", "WEB"];
 
     const bibleStore = {
       translationName: "ChiUn: 和合本 (繁體字)",
@@ -2643,7 +2655,7 @@
       const cachedList = await loadAllTranslationsFromOfflineDB();
       if (cachedList && cachedList.length > 0) {
         cachedList.forEach(entry => {
-          if (entry && entry.data) {
+          if (entry && entry.data && !REMOVED_TRANSLATION_IDS.includes(entry.id)) {
             if (!bibleStore.catalog.some(c => c.id === entry.id)) {
               bibleStore.catalog.push({
                 id: entry.id,
