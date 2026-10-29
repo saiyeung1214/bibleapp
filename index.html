@@ -308,8 +308,23 @@
         <h1 id="chapterMainTitle" class="text-2xl sm:text-3xl font-bold tracking-tight">創世記 第 1 章</h1>
       </div>
 
-      <!-- 快速底色與字級微調列 -->
-      <div class="flex items-center gap-1.5">
+      <!-- 快速章節切換、選擇書卷與章節、底色與字級微調列 -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button onclick="prevChapter()" title="上一章 (←)" class="px-2.5 py-1 rounded-lg theme-secondary border hover:border-blue-500 transition flex items-center gap-1 text-xs font-semibold active:scale-95">
+          <i class="fa-solid fa-arrow-left text-blue-500"></i>
+          <span>上一章</span>
+        </button>
+        <button onclick="openBookModal()" title="選擇書卷與章節" class="px-2.5 py-1 rounded-lg bg-blue-600/10 text-blue-600 border border-blue-500/30 hover:bg-blue-600/20 transition flex items-center gap-1 text-xs font-bold active:scale-95">
+          <i class="fa-solid fa-book-open text-[11px]"></i>
+          <span>選擇書卷與章節</span>
+        </button>
+        <button onclick="nextChapter()" title="下一章 (→)" class="px-2.5 py-1 rounded-lg theme-secondary border hover:border-blue-500 transition flex items-center gap-1 text-xs font-semibold active:scale-95">
+          <span>下一章</span>
+          <i class="fa-solid fa-arrow-right text-blue-500"></i>
+        </button>
+
+        <div class="h-4 w-[1px] bg-gray-300 dark:bg-gray-700 mx-0.5 hidden sm:block"></div>
+
         <button onclick="setTheme('white')" title="白底日間模式" class="w-7 h-7 rounded-full border border-gray-300 bg-white text-gray-800 flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">白</button>
         <button onclick="setTheme('sepia')" title="啡底護眼模式" class="w-7 h-7 rounded-full border border-amber-400 bg-[#f4ecd8] text-[#3d2e1e] flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">啡</button>
         <button onclick="setTheme('black')" title="黑底夜間模式" class="w-7 h-7 rounded-full border border-gray-700 bg-[#0b0d11] text-gray-200 flex items-center justify-center text-xs font-bold shadow-2xs hover:scale-105 transition">黑</button>
